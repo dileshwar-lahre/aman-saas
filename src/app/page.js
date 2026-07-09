@@ -1,15 +1,19 @@
 "use client";
 
 import HeroAndFeatures from "./components/Hero";
-
-// Tumhare path (app/components/Hero) ke mutabik direct import
+// 🔥 FIXED: Path ko exact tumhari file ke naam "FeaturesSection" se map kar diya hai
+import FeaturesSection from "./components/FeaturesSection"; 
 
 export default function LandingPage() {
   return (
-    <div className="bg-black text-white min-h-screen selection:bg-white selection:text-black font-sans scroll-smooth">
+    <div className="bg-white text-black min-h-screen selection:bg-black selection:text-white font-sans scroll-smooth overflow-x-hidden">
       
-      {/* Sirf aur sirf core Hero section load hoga yahan */}
-<HeroAndFeatures/>      
+      {/* 1. Core Floating Hero Display Section */}
+      <HeroAndFeatures />
+      
+      {/* 2. Brand Trust & Customer Retention Features Section */}
+      <FeaturesSection />
+      
     </div>
   );
 }
