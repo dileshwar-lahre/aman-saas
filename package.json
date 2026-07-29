@@ -9,8 +9,13 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "jsonwebtoken": "^9.0.3",
+    "mongodb": "^7.5.0",
+    "mongoose": "^9.8.1",
     "next": "16.2.10",
+    "nodemailer": "^9.0.3",
     "qrcode": "^1.5.4",
+    "qrcode.react": "^4.2.0",
     "razorpay": "^2.9.6",
     "react": "19.2.4",
     "react-dom": "19.2.4",
