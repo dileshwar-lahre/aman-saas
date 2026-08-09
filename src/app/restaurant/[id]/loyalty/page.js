@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect, use } from "react";
-import { FiCheck, FiGift, FiClock, FiAlertCircle, FiSparkles } from "react-icons/fi";
+import { FiCheck, FiGift, FiClock, FiAlertCircle } from "react-icons/fi";
+import { LuSparkles } from "react-icons/lu";
 
 export default function CustomerLoyaltyPage({ params }) {
   const resolvedParams = use(params);
@@ -118,7 +119,7 @@ export default function CustomerLoyaltyPage({ params }) {
               onClick={() => setIsScratched(true)}
               className="w-full py-8 bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-500 hover:to-rose-600 rounded-xl text-white font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95"
             >
-              <FiSparkles className="text-lg" /> Scratch To Reveal Offer
+              <LuSparkles className="text-lg" /> Scratch To Reveal Offer
             </button>
           ) : (
             <div className="space-y-2 animate-fade-in">
