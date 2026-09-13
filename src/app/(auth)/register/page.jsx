@@ -8,6 +8,7 @@ import {
   FiX,
   FiUser,
   FiMail,
+  FiPhone,
   FiMapPin,
   FiKey,
   FiLock,
@@ -19,13 +20,12 @@ import { LuChefHat } from "react-icons/lu";
 export default function RegisterPage() {
   const router = useRouter();
 
-  // Multi-step Navigation State: 1 = Details, 2 = OTP Popup, 3 = Password Setup
+  // Multi-step Navigation: 1 = Details, 2 = WhatsApp OTP, 3 = Password Setup
   const [step, setStep] = useState(1);
-
-  // Role Control ('owner' ya 'customer')
   const [role, setRole] = useState("owner");
 
   // Form Fields
+  const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
   const [password, setPassword] = useState("");
@@ -37,13 +37,19 @@ export default function RegisterPage() {
   const [ownerName, setOwnerName] = useState("");
   const [location, setLocation] = useState("");
 
-  // States
+  // UI States
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
 
-  // 1. STEP 1: Send OTP To Email
+  // 1. STEP 1: Send OTP to WhatsApp Phone Number
   const handleSendOtp = async (e) => {
     e.preventDefault();
+
+    if (!phone || phone.replace(/[^0-9]/g, "").length < 10) {
+      setMessage({ type: "error", text: "Valid 10-digit WhatsApp Phone Number daalein!" });
+      return;
+    }
+
     if (!email) {
       setMessage({ type: "error", text: "Gmail address zaroori hai!" });
       return;
@@ -52,38 +58,41 @@ export default function RegisterPage() {
     setLoading(true);
     setMessage({ type: "", text: "" });
 
-    const payload =
-      role === "customer"
-        ? { email, name, role: "customer" }
-        : { email, restaurantName, ownerName, role: "restaurant" };
-
     try {
       const res = await fetch("/api/auth/send-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          phone: phone.replace(/[^0-9]/g, "").slice(-10),
+          email,
+          role,
+        }),
       });
 
       const data = await res.json();
 
       if (data.success) {
-        setStep(2); // Jump to Step 2 (OTP Popup)
-        setMessage({ type: "success", text: "OTP sent to your Gmail!" });
+        setStep(2);
+        setMessage({
+          type: "success",
+          text: "WhatsApp par 4-digit OTP bhej diya gaya hai!",
+        });
       } else {
         setMessage({ type: "error", text: data.error || "OTP send nahi ho paya!" });
       }
     } catch (err) {
-      setMessage({ type: "error", text: "Server Connection Fail!" });
+      setMessage({ type: "error", text: "Server Connection Failed!" });
     } finally {
       setLoading(false);
     }
   };
 
-  // 2. STEP 2: Verify OTP
+  // 2. STEP 2: Verify WhatsApp OTP
   const handleVerifyOtp = async (e) => {
     e.preventDefault();
-    if (!otp || otp.length !== 6) {
-      setMessage({ type: "error", text: "Kripya valid 6-digit OTP enter karein!" });
+
+    if (!otp || otp.trim().length !== 4) {
+      setMessage({ type: "error", text: "Kripya valid 4-digit OTP enter karein!" });
       return;
     }
 
@@ -94,13 +103,16 @@ export default function RegisterPage() {
       const res = await fetch("/api/auth/verify-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, otp }),
+        body: JSON.stringify({
+          phone: phone.replace(/[^0-9]/g, "").slice(-10),
+          otp: otp.trim(),
+        }),
       });
 
       const data = await res.json();
 
       if (data.success) {
-        setStep(3); // Jump to Step 3 (Create Password)
+        setStep(3);
         setMessage({ type: "success", text: "OTP Verified! Create your password." });
       } else {
         setMessage({ type: "error", text: data.error || "Galat OTP!" });
@@ -112,23 +124,30 @@ export default function RegisterPage() {
     }
   };
 
-  // 3. STEP 3: Create Password & Save To Database
+  // 3. STEP 3: Create Password & Register -> Redirect to Login
   const handleFinalRegister = async (e) => {
     e.preventDefault();
 
     if (password !== confirmPassword) {
-      setMessage({ type: "error", text: "Password aur Confirm Password match nahi ho rahe!" });
+      setMessage({
+        type: "error",
+        text: "Password aur Confirm Password match nahi ho rahe!",
+      });
       return;
     }
 
     if (password.length < 6) {
-      setMessage({ type: "error", text: "Password kam se kam 6 characters ka hona chahiye!" });
+      setMessage({
+        type: "error",
+        text: "Password kam se kam 6 characters ka hona chahiye!",
+      });
       return;
     }
 
     setLoading(true);
     setMessage({ type: "", text: "" });
 
+    const cleanPhone = phone.replace(/[^0-9]/g, "").slice(-10);
     const endpoint =
       role === "customer"
         ? "/api/auth/register-user"
@@ -136,8 +155,16 @@ export default function RegisterPage() {
 
     const payload =
       role === "customer"
-        ? { name, email, password, otp }
-        : { restaurantName, ownerName, email, location, password, otp };
+        ? { name, email, phone: cleanPhone, password, otp: otp.trim() }
+        : {
+            restaurantName,
+            ownerName,
+            email,
+            phone: cleanPhone,
+            location,
+            password,
+            otp: otp.trim(),
+          };
 
     try {
       const res = await fetch(endpoint, {
@@ -155,7 +182,7 @@ export default function RegisterPage() {
         });
         setTimeout(() => {
           router.push("/login");
-        }, 1500);
+        }, 1200);
       } else {
         setMessage({ type: "error", text: data.error || "Registration failed!" });
       }
@@ -180,12 +207,11 @@ export default function RegisterPage() {
           }
         }
         .animate-3d-popup {
-          animation: isometric-3d-pop 0.4s cubic-bezier(0.34, 1.6, 0.64, 1)
-            forwards;
+          animation: isometric-3d-pop 0.4s cubic-bezier(0.34, 1.6, 0.64, 1) forwards;
         }
       `}</style>
 
-      {/* 🌟 MAIN REGISTRATION CARD CONTAINER */}
+      {/* Main Registration Card Container */}
       <div className="w-full max-w-[420px] bg-white rounded-[2.5rem] p-8 md:p-10 relative z-50 animate-3d-popup shadow-[0_20px_50px_rgba(0,0,0,0.1),0_4px_12px_rgba(0,0,0,0.05),inset_0_1px_0_rgba(255,255,255,1)] border border-neutral-100">
         
         {/* Floating Close Button */}
@@ -204,7 +230,7 @@ export default function RegisterPage() {
             {step === 3 && "SET PASSWORD"}
           </h1>
           <p className="text-[11px] font-mono text-neutral-400 uppercase tracking-widest">
-            stonenox Secure Node • Step {step} of 3
+            WhatsApp Secured • Step {step} of 3
           </p>
         </div>
 
@@ -221,9 +247,7 @@ export default function RegisterPage() {
           </div>
         )}
 
-        {/* ========================================================= */}
-        {/* 📋 STEP 1: USER / RESTAURANT DETAILS FORM */}
-        {/* ========================================================= */}
+        {/* STEP 1: DETAILS & PHONE FORM */}
         {step === 1 && (
           <div className="animate-3d-popup">
             {/* Dynamic Role Switch Tabs */}
@@ -320,6 +344,20 @@ export default function RegisterPage() {
                 </>
               )}
 
+              {/* WhatsApp Mobile Number Field */}
+              <div className="relative flex items-center">
+                <input
+                  type="tel"
+                  required
+                  placeholder="WhatsApp Mobile Number"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="w-full bg-[#F3F4F6] border border-neutral-200/40 rounded-full py-4 pl-6 pr-12 text-xs font-bold text-black placeholder-neutral-400 focus:outline-none focus:bg-white focus:border-black transition-all shadow-inner"
+                />
+                <FiPhone className="absolute right-5 text-neutral-400 text-sm pointer-events-none" />
+              </div>
+
+              {/* Gmail Address Field */}
               <div className="relative flex items-center">
                 <input
                   type="email"
@@ -341,25 +379,23 @@ export default function RegisterPage() {
                   boxShadow: "0 4px 14px rgba(255, 153, 0, 0.4)",
                 }}
               >
-                <span>{loading ? "SENDING OTP..." : "SEND OTP CODE"}</span>
+                <span>{loading ? "SENDING WHATSAPP OTP..." : "SEND OTP CODE"}</span>
                 <FiArrowRight className="text-sm" />
               </button>
             </form>
           </div>
         )}
 
-        {/* ========================================================= */}
-        {/* 🔐 STEP 2: OTP POPUP SCREEN */}
-        {/* ========================================================= */}
+        {/* STEP 2: WHATSAPP OTP POPUP SCREEN */}
         {step === 2 && (
           <div className="animate-3d-popup space-y-4">
             <div className="text-center bg-neutral-50 p-4 rounded-2xl border border-neutral-100">
               <FiShield className="mx-auto text-xl text-[#FF9900] mb-1" />
               <p className="text-xs font-bold text-neutral-700">
-                OTP Sent to <span className="text-black">{email}</span>
+                OTP Sent to WhatsApp: <span className="text-black">{phone}</span>
               </p>
               <p className="text-[10px] text-neutral-400">
-                Check your Gmail inbox. Code expires in 10 mins.
+                Primary phone ke WhatsApp app me code check karein.
               </p>
             </div>
 
@@ -368,10 +404,10 @@ export default function RegisterPage() {
                 <input
                   type="text"
                   required
-                  maxLength={6}
+                  maxLength={4}
                   value={otp}
                   onChange={(e) => setOtp(e.target.value)}
-                  placeholder="Enter 6-Digit OTP"
+                  placeholder="Enter 4-Digit OTP"
                   className="w-full bg-[#F3F4F6] border border-black rounded-full py-4 pl-6 pr-12 text-sm font-black text-black tracking-[8px] placeholder-normal placeholder:tracking-normal placeholder-neutral-400 focus:outline-none focus:bg-white transition-all shadow-inner text-center"
                 />
                 <FiKey className="absolute right-5 text-neutral-400 text-sm pointer-events-none" />
@@ -383,7 +419,7 @@ export default function RegisterPage() {
                   onClick={() => setStep(1)}
                   className="text-neutral-400 hover:text-black transition-colors"
                 >
-                  ← Change Details
+                  ← Edit Details
                 </button>
                 <button
                   type="button"
@@ -410,14 +446,12 @@ export default function RegisterPage() {
           </div>
         )}
 
-        {/* ========================================================= */}
-        {/* 🔑 STEP 3: CREATE & CONFIRM PASSWORD SCREEN */}
-        {/* ========================================================= */}
+        {/* STEP 3: CREATE & CONFIRM PASSWORD SCREEN */}
         {step === 3 && (
           <div className="animate-3d-popup space-y-4">
             <div className="text-center bg-emerald-50 p-3 rounded-2xl border border-emerald-100">
               <p className="text-xs font-bold text-emerald-700">
-                ✅ OTP Verified! Create a strong password for your account.
+                ✅ WhatsApp Verified! Create a strong password.
               </p>
             </div>
 
@@ -428,7 +462,7 @@ export default function RegisterPage() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="New Password"
+                  placeholder="New Password (min 6 characters)"
                   className="w-full bg-[#F3F4F6] border border-neutral-200/40 rounded-full py-4 pl-6 pr-12 text-xs font-bold text-black placeholder-neutral-400 focus:outline-none focus:bg-white focus:border-black transition-all shadow-inner"
                 />
                 <FiLock className="absolute right-5 text-neutral-400 text-sm pointer-events-none" />
@@ -474,7 +508,7 @@ export default function RegisterPage() {
         </div>
       </div>
 
-      {/* Decorative Blur Background Highlights */}
+      {/* Decorative Highlights */}
       <div className="absolute top-[-10%] right-[-10%] w-96 h-96 bg-amber-500/5 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-[-10%] left-[-10%] w-96 h-96 bg-neutral-900/[0.02] rounded-full blur-3xl pointer-events-none" />
     </div>

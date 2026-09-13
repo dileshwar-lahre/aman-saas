@@ -19,6 +19,11 @@ const RestaurantSchema = new mongoose.Schema(
       stamp5: { type: String, default: "15% OFF Combo" },
       reward6th: { type: String, default: "🎉 FREE Super Meal / 50% OFF Reward!" },
     },
+  socialLinks: {
+  googleReviewUrl: { type: String, default: "" },
+  instagram: { type: String, default: "" },
+  facebook: { type: String, default: "" }
+},
 
     menu: [
       {
@@ -27,6 +32,7 @@ const RestaurantSchema = new mongoose.Schema(
         category: { type: String, default: "Main Course" },
         isAvailable: { type: Boolean, default: true },
       },
+      
     ],
   },
   { timestamps: true }
