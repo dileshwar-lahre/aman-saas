@@ -1,3 +1,4 @@
+
 import { NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/db";
 import Restaurant from "@/models/Restaurant";
@@ -7,8 +8,15 @@ import jwt from "jsonwebtoken";
 
 export async function POST(req) {
   try {
-    const { restaurantName, ownerName, email, phone, location, password, otp } =
-      await req.json();
+    const {
+      restaurantName,
+      ownerName,
+      email,
+      phone,
+      location,
+      password,
+      otp,
+    } = await req.json();
 
     if (
       !restaurantName ||
@@ -20,19 +28,27 @@ export async function POST(req) {
       !otp
     ) {
       return NextResponse.json(
-        { success: false, error: "Restaurant ki sabhi details, Phone aur OTP zaroori hain!" },
+        {
+          success: false,
+          error:
+            "Restaurant ki sabhi details, Phone aur OTP zaroori hain!",
+        },
         { status: 400 }
       );
     }
 
     if (password.length < 6) {
       return NextResponse.json(
-        { success: false, error: "Password kam se kam 6 characters ka hona chahiye!" },
+        {
+          success: false,
+          error: "Password kam se kam 6 characters ka hona chahiye!",
+        },
         { status: 400 }
       );
     }
 
     await connectToDatabase();
+
     const cleanEmail = email.toLowerCase().trim();
     const cleanPhone = phone.replace(/[^0-9]/g, "").slice(-10);
 
@@ -44,12 +60,15 @@ export async function POST(req) {
 
     if (!otpRecord) {
       return NextResponse.json(
-        { success: false, error: "Galat ya expired OTP! Sahi OTP enter karein." },
+        {
+          success: false,
+          error: "Galat ya expired OTP! Sahi OTP enter karein.",
+        },
         { status: 400 }
       );
     }
 
-    // OTP delete after success
+    // OTP delete after successful verification
     await Otp.deleteMany({
       $or: [{ phone: cleanPhone }, { email: cleanEmail }],
     });
@@ -61,7 +80,11 @@ export async function POST(req) {
 
     if (existingRestaurant) {
       return NextResponse.json(
-        { success: false, error: "Is Email ya Phone number se Restaurant pehle se registered hai!" },
+        {
+          success: false,
+          error:
+            "Is Email ya Phone number se Restaurant pehle se registered hai!",
+        },
         { status: 400 }
       );
     }
@@ -82,9 +105,15 @@ export async function POST(req) {
 
     // 5. JWT Auth Token Generate
     const token = jwt.sign(
-      { id: newRestaurant._id, email: newRestaurant.email, role: "restaurant" },
+      {
+        id: newRestaurant._id,
+        email: newRestaurant.email,
+        role: "restaurant",
+      },
       process.env.JWT_SECRET || "adyverse_secret_key_restaurant_node",
-      { expiresIn: "30d" }
+      {
+        expiresIn: "30d",
+      }
     );
 
     const response = NextResponse.json({
@@ -111,8 +140,12 @@ export async function POST(req) {
     return response;
   } catch (error) {
     console.error("RESTAURANT REGISTRATION ERROR:", error);
+
     return NextResponse.json(
-      { success: false, error: "Registration Fail: " + error.message },
+      {
+        success: false,
+        error: "Registration Fail: " + error.message,
+      },
       { status: 500 }
     );
   }

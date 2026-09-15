@@ -1,22 +1,38 @@
+
 import { NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/db";
 import Restaurant from "@/models/Restaurant";
 
-// 1. GET: Fetch existing offers
+// GET: Fetch existing offers
 export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url);
     const restaurantId = searchParams.get("restaurantId");
 
     if (!restaurantId) {
-      return NextResponse.json({ success: false, error: "Restaurant ID zaroori hai!" }, { status: 400 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Restaurant ID zaroori hai!",
+        },
+        { status: 400 }
+      );
     }
 
     await connectToDatabase();
-    const restaurant = await Restaurant.findById(restaurantId).select("loyaltyOffers restaurantName");
+
+    const restaurant = await Restaurant.findById(restaurantId).select(
+      "loyaltyOffers restaurantName"
+    );
 
     if (!restaurant) {
-      return NextResponse.json({ success: false, error: "Restaurant nahi mila!" }, { status: 404 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Restaurant nahi mila!",
+        },
+        { status: 404 }
+      );
     }
 
     return NextResponse.json({
@@ -24,27 +40,45 @@ export async function GET(req) {
       loyaltyOffers: restaurant.loyaltyOffers || {},
     });
   } catch (error) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json(
+      {
+        success: false,
+        error: error.message,
+      },
+      { status: 500 }
+    );
   }
 }
 
-// 2. PUT: Live Update Loyalty Offers in MongoDB
+// PUT: Update loyalty offers
 export async function PUT(req) {
   try {
     const { restaurantId, loyaltyOffers } = await req.json();
 
     if (!restaurantId || !loyaltyOffers) {
-      return NextResponse.json({ success: false, error: "Details missing hain!" }, { status: 400 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Details missing hain!",
+        },
+        { status: 400 }
+      );
     }
 
     await connectToDatabase();
+
     const restaurant = await Restaurant.findById(restaurantId);
 
     if (!restaurant) {
-      return NextResponse.json({ success: false, error: "Restaurant nahi mila!" }, { status: 404 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Restaurant nahi mila!",
+        },
+        { status: 404 }
+      );
     }
 
-    // Update loyalty offers object in MongoDB
     restaurant.loyaltyOffers = {
       stamp1: loyaltyOffers.stamp1 || "",
       stamp2: loyaltyOffers.stamp2 || "",
@@ -62,6 +96,12 @@ export async function PUT(req) {
       loyaltyOffers: restaurant.loyaltyOffers,
     });
   } catch (error) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json(
+      {
+        success: false,
+        error: error.message,
+      },
+      { status: 500 }
+    );
   }
 }

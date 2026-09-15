@@ -1,3 +1,4 @@
+
 import { NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/db";
 import User from "@/models/User";
@@ -10,12 +11,16 @@ export async function POST(req) {
 
     if (!email || !password || !role) {
       return NextResponse.json(
-        { success: false, error: "Email, Password aur Role zaroori hain!" },
+        {
+          success: false,
+          error: "Email, Password aur Role zaroori hain!",
+        },
         { status: 400 }
       );
     }
 
     await connectToDatabase();
+
     const cleanEmail = email.toLowerCase().trim();
 
     let account = null;
@@ -40,12 +45,15 @@ export async function POST(req) {
 
     if (account.password !== password) {
       return NextResponse.json(
-        { success: false, error: "Galat Password! Dobara try karein." },
+        {
+          success: false,
+          error: "Galat Password! Dobara try karein.",
+        },
         { status: 400 }
       );
     }
 
-    // 🔐 Create JWT Token (Valid for 30 Days)
+    // Create JWT Token (Valid for 30 Days)
     const tokenPayload = {
       id: account._id,
       email: account.email,
@@ -63,19 +71,22 @@ export async function POST(req) {
       user: tokenPayload,
     });
 
-    // 🔐 Set Token in Secure HttpOnly Cookie
+    // Set Token in Secure HttpOnly Cookie
     response.cookies.set("token", token, {
-      httpOnly: true, // XSS attack protection
+      httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "strict",
-      maxAge: 30 * 24 * 60 * 60, // 30 Days in seconds
+      maxAge: 30 * 24 * 60 * 60,
       path: "/",
     });
 
     return response;
   } catch (error) {
     return NextResponse.json(
-      { success: false, error: "Login Error: " + error.message },
+      {
+        success: false,
+        error: "Login Error: " + error.message,
+      },
       { status: 500 }
     );
   }
