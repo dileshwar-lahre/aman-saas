@@ -2,13 +2,14 @@ import { NextResponse } from 'next/server';
 import Razorpay from 'razorpay';
 import crypto from 'crypto';
 
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID,
-  key_secret: process.env.RAZORPAY_KEY_SECRET,
-});
-
 export async function POST(req) {
   try {
+    // 🛑 FIX: Razorpay ko function ke andar initialize kiya taaki build error na aaye
+    const razorpay = new Razorpay({
+      key_id: process.env.RAZORPAY_KEY_ID,
+      key_secret: process.env.RAZORPAY_KEY_SECRET,
+    });
+
     const body = await req.json();
     const { action, planId, razorpay_order_id, razorpay_payment_id, razorpay_signature } = body;
 
