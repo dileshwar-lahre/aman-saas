@@ -1,4 +1,3 @@
-
 import mongoose from "mongoose";
 
 const RestaurantSchema = new mongoose.Schema(
@@ -20,6 +19,13 @@ const RestaurantSchema = new mongoose.Schema(
       required: true,
       unique: true,
       lowercase: true,
+      trim: true,
+    },
+
+    phone: {
+      type: String,
+      required: true,
+      unique: true,
       trim: true,
     },
 
@@ -45,44 +51,38 @@ const RestaurantSchema = new mongoose.Schema(
         type: String,
         default: "5% OFF on Main Course",
       },
-
       stamp2: {
         type: String,
         default: "Free Welcome Drink",
       },
-
       stamp3: {
         type: String,
         default: "10% OFF on Bill",
       },
-
       stamp4: {
         type: String,
         default: "Free Dessert",
       },
-
       stamp5: {
         type: String,
         default: "15% OFF Combo",
       },
-
       reward6th: {
         type: String,
         default: "🎉 FREE Super Meal / 50% OFF Reward!",
       },
     },
 
+    // 🌐 Social Links & Google Review
     socialLinks: {
       googleReviewUrl: {
         type: String,
         default: "",
       },
-
       instagram: {
         type: String,
         default: "",
       },
-
       facebook: {
         type: String,
         default: "",
@@ -95,17 +95,14 @@ const RestaurantSchema = new mongoose.Schema(
           type: String,
           required: true,
         },
-
         price: {
           type: Number,
           required: true,
         },
-
         category: {
           type: String,
           default: "Main Course",
         },
-
         isAvailable: {
           type: Boolean,
           default: true,

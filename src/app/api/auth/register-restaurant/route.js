@@ -1,8 +1,6 @@
-
 import { NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/db";
 import Restaurant from "@/models/Restaurant";
-import Otp from "@/models/Otp";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
@@ -11,7 +9,6 @@ export async function POST(req) {
     const {
       restaurantName,
       ownerName,
-      email,
       phone,
       location,
       password,
@@ -21,7 +18,6 @@ export async function POST(req) {
     if (
       !restaurantName ||
       !ownerName ||
-      !email ||
       !phone ||
       !location ||
       !password ||
@@ -30,8 +26,7 @@ export async function POST(req) {
       return NextResponse.json(
         {
           success: false,
-          error:
-            "Restaurant ki sabhi details, Phone aur OTP zaroori hain!",
+          error: "Restaurant ki sabhi details, Phone aur OTP zaroori hain!",
         },
         { status: 400 }
       );
@@ -48,66 +43,41 @@ export async function POST(req) {
     }
 
     await connectToDatabase();
-
-    const cleanEmail = email.toLowerCase().trim();
     const cleanPhone = phone.replace(/[^0-9]/g, "").slice(-10);
 
-    // 1. WhatsApp OTP Match Check
-    const otpRecord = await Otp.findOne({
-      $or: [{ phone: cleanPhone }, { email: cleanEmail }],
-      otp: otp.trim(),
-    });
-
-    if (!otpRecord) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Galat ya expired OTP! Sahi OTP enter karein.",
-        },
-        { status: 400 }
-      );
-    }
-
-    // OTP delete after successful verification
-    await Otp.deleteMany({
-      $or: [{ phone: cleanPhone }, { email: cleanEmail }],
-    });
-
-    // 2. Existing Restaurant Duplicate Check
-    const existingRestaurant = await Restaurant.findOne({
-      $or: [{ email: cleanEmail }, { phone: cleanPhone }],
-    });
+    // 1. Check if Restaurant already exists with this phone number
+    const existingRestaurant = await Restaurant.findOne({ phone: cleanPhone });
 
     if (existingRestaurant) {
       return NextResponse.json(
         {
           success: false,
-          error:
-            "Is Email ya Phone number se Restaurant pehle se registered hai!",
+          error: "⚠️ Ye WhatsApp number pehle se registered hai! Kripya Login karein.",
+          isAlreadyRegistered: true, // Frontend pe redirect ke liye flag
         },
         { status: 400 }
       );
     }
 
-    // 3. Password Hashing
+    // 2. Password Hashing
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // 4. Create Restaurant
+    // 3. Create New Restaurant
     const newRestaurant = await Restaurant.create({
       restaurantName: restaurantName.trim(),
       ownerName: ownerName.trim(),
-      email: cleanEmail,
       phone: cleanPhone,
+      email: `${cleanPhone}@restaurant.com`,
       location: location.trim(),
       password: hashedPassword,
       role: "restaurant",
     });
 
-    // 5. JWT Auth Token Generate
+    // 4. JWT Auth Token Generate
     const token = jwt.sign(
       {
         id: newRestaurant._id,
-        email: newRestaurant.email,
+        phone: newRestaurant.phone,
         role: "restaurant",
       },
       process.env.JWT_SECRET || "adyverse_secret_key_restaurant_node",
@@ -123,7 +93,6 @@ export async function POST(req) {
         id: newRestaurant._id,
         restaurantName: newRestaurant.restaurantName,
         ownerName: newRestaurant.ownerName,
-        email: newRestaurant.email,
         phone: newRestaurant.phone,
         location: newRestaurant.location,
         role: newRestaurant.role,

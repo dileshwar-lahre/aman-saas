@@ -1,36 +1,36 @@
 import { NextResponse } from "next/server";
-import { connectToDatabase } from "@/lib/db";
-import Otp from "@/models/Otp";
 
 export async function POST(req) {
   try {
-    const { email, otp } = await req.json();
+    const { mobile, otp } = await req.json();
 
-    if (!email || !otp) {
+    if (!mobile || !otp) {
       return NextResponse.json(
-        { success: false, error: "Email aur OTP zaroori hain!" },
+        { success: false, error: "Mobile number aur OTP dono zaroori hain!" },
         { status: 400 }
       );
     }
 
-    await connectToDatabase();
-    const cleanEmail = email.toLowerCase().trim();
+    const cleanMobile = mobile.replace(/[^0-9]/g, "").slice(-10);
+    const savedOtp = global.whatsappOtpStore?.[cleanMobile];
 
-    const otpRecord = await Otp.findOne({ email: cleanEmail, otp });
-    if (!otpRecord) {
+    if (!savedOtp || savedOtp !== otp.trim()) {
       return NextResponse.json(
-        { success: false, error: "Galat ya Expired OTP! Dobara try karein." },
+        { success: false, error: "Galat ya expired OTP! Dubara check karo." },
         { status: 400 }
       );
     }
+
+    // Clear OTP after successful verification
+    delete global.whatsappOtpStore[cleanMobile];
 
     return NextResponse.json({
       success: true,
-      message: "OTP Verified Successfully!",
+      message: "Mobile verified successfully!",
     });
-  } catch (error) {
+  } catch (err) {
     return NextResponse.json(
-      { success: false, error: "Verification Failed: " + error.message },
+      { success: false, error: err.message },
       { status: 500 }
     );
   }

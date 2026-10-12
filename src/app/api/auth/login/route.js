@@ -1,4 +1,3 @@
-
 import { NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/db";
 import User from "@/models/User";
@@ -7,13 +6,15 @@ import jwt from "jsonwebtoken";
 
 export async function POST(req) {
   try {
-    const { email, password, role } = await req.json();
+    const { phone, password, role } = await req.json();
 
-    if (!email || !password || !role) {
+    const cleanPhone = phone ? phone.replace(/[^0-9]/g, "").slice(-10) : "";
+
+    if (!cleanPhone || !password || !role) {
       return NextResponse.json(
         {
           success: false,
-          error: "Email, Password aur Role zaroori hain!",
+          error: "Mobile Number, Password aur Role zaroori hain!",
         },
         { status: 400 }
       );
@@ -21,21 +22,19 @@ export async function POST(req) {
 
     await connectToDatabase();
 
-    const cleanEmail = email.toLowerCase().trim();
-
     let account = null;
 
     if (role === "customer") {
-      account = await User.findOne({ email: cleanEmail });
+      account = await User.findOne({ phone: cleanPhone });
     } else {
-      account = await Restaurant.findOne({ email: cleanEmail });
+      account = await Restaurant.findOne({ phone: cleanPhone });
     }
 
     if (!account) {
       return NextResponse.json(
         {
           success: false,
-          error: `Is email se koi ${
+          error: `Is mobile number se koi ${
             role === "customer" ? "Customer" : "Restaurant"
           } registered nahi hai!`,
         },
@@ -53,12 +52,16 @@ export async function POST(req) {
       );
     }
 
+    // Role ke hisaab se redirect path set karo
+    const redirectPath = role === "customer" ? "/dashboard/profile" : "/profile";
+
     // Create JWT Token (Valid for 30 Days)
     const tokenPayload = {
       id: account._id,
-      email: account.email,
+      phone: account.phone,
       role,
       name: role === "customer" ? account.name : account.ownerName,
+      redirectPath,
     };
 
     const token = jwt.sign(tokenPayload, process.env.JWT_SECRET, {
@@ -69,6 +72,7 @@ export async function POST(req) {
       success: true,
       message: "🎉 Login Successful!",
       user: tokenPayload,
+      redirectPath,
     });
 
     // Set Token in Secure HttpOnly Cookie

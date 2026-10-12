@@ -1,17 +1,17 @@
 import { NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/db";
 import User from "@/models/User";
-import Otp from "@/models/Otp";
+import Restaurant from "@/models/Restaurant";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
 export async function POST(req) {
   try {
-    const { name, email, phone, password, otp } = await req.json();
+    const { name, phone, password } = await req.json(); // otp ki yahan zaroorat nahi hai kyunki Step 2 me verify ho chuka hai
 
-    if (!name || !email || !phone || !password || !otp) {
+    if (!name || !phone || !password) {
       return NextResponse.json(
-        { success: false, error: "Name, Email, Phone, Password aur OTP sabhi zaroori hain!" },
+        { success: false, error: "Name, Phone aur Password sabhi zaroori hain!" },
         { status: 400 }
       );
     }
@@ -24,54 +24,37 @@ export async function POST(req) {
     }
 
     await connectToDatabase();
-    const cleanEmail = email.toLowerCase().trim();
     const cleanPhone = phone.replace(/[^0-9]/g, "").slice(-10);
 
-    // 1. WhatsApp OTP Match Check
-    const otpRecord = await Otp.findOne({
-      $or: [{ phone: cleanPhone }, { email: cleanEmail }],
-      otp: otp.trim(),
-    });
+    // 1. Cross-Role Duplicate Check (Phone number check in both User and Restaurant)
+    const existingUser = await User.findOne({ phone: cleanPhone });
+    const existingRestaurant = await Restaurant.findOne({ phone: cleanPhone });
 
-    if (!otpRecord) {
+    if (existingUser || existingRestaurant) {
       return NextResponse.json(
-        { success: false, error: "Galat ya expired OTP! Kripya sahi OTP enter karein." },
+        { 
+          success: false, 
+          error: "Is Mobile number se account pehle se registered hai! Kripya Login karein." 
+        },
         { status: 400 }
       );
     }
 
-    // OTP delete after success
-    await Otp.deleteMany({
-      $or: [{ phone: cleanPhone }, { email: cleanEmail }],
-    });
-
-    // 2. Existing User Check
-    const existingUser = await User.findOne({
-      $or: [{ email: cleanEmail }, { phone: cleanPhone }],
-    });
-
-    if (existingUser) {
-      return NextResponse.json(
-        { success: false, error: "Is Email ya Mobile number se account pehle se bana hai! Login karein." },
-        { status: 400 }
-      );
-    }
-
-    // 3. Password Hashing
+    // 2. Password Hashing
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // 4. Create Customer
+    // 3. Create Customer User
     const newUser = await User.create({
       name: name.trim(),
-      email: cleanEmail,
+      email: `${cleanPhone}@customer.com`,
       phone: cleanPhone,
       password: hashedPassword,
       role: "customer",
     });
 
-    // 5. Auth Token Generate
+    // 4. Auth Token Generate
     const token = jwt.sign(
-      { id: newUser._id, email: newUser.email, role: "customer" },
+      { id: newUser._id, phone: newUser.phone, role: "customer" },
       process.env.JWT_SECRET || "adyverse_secret_key_customer_node",
       { expiresIn: "30d" }
     );
@@ -82,7 +65,6 @@ export async function POST(req) {
       user: {
         id: newUser._id,
         name: newUser.name,
-        email: newUser.email,
         phone: newUser.phone,
         role: newUser.role,
       },

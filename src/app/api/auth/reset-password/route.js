@@ -2,13 +2,14 @@ import { NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/db";
 import User from "@/models/User";
 import Restaurant from "@/models/Restaurant";
-import Otp from "@/models/Otp";
 
 export async function POST(req) {
   try {
-    const { email, password, otp, role } = await req.json();
+    const { phone, password, role } = await req.json();
 
-    if (!email || !password || !otp || !role) {
+    const cleanPhone = phone ? phone.replace(/[^0-9]/g, "").slice(-10) : "";
+
+    if (!cleanPhone || !password || !role) {
       return NextResponse.json(
         { success: false, error: "Sabhi details zaroori hain!" },
         { status: 400 }
@@ -16,37 +17,25 @@ export async function POST(req) {
     }
 
     await connectToDatabase();
-    const cleanEmail = email.toLowerCase().trim();
 
-    // 1. Verify OTP
-    const otpRecord = await Otp.findOne({ email: cleanEmail, otp });
-    if (!otpRecord) {
-      return NextResponse.json(
-        { success: false, error: "Galat ya Expired OTP!" },
-        { status: 400 }
-      );
-    }
-
-    // 2. Find Account & Update Password
+    // Find Account & Update Password directly using phone 
+    // (Kyunki OTP already step 2 par verify ho chuka hai)
     let account = null;
     if (role === "customer") {
-      account = await User.findOne({ email: cleanEmail });
+      account = await User.findOne({ phone: cleanPhone });
     } else {
-      account = await Restaurant.findOne({ email: cleanEmail });
+      account = await Restaurant.findOne({ phone: cleanPhone });
     }
 
     if (!account) {
       return NextResponse.json(
-        { success: false, error: "Is email se account nahi mila!" },
+        { success: false, error: "Is mobile number se account nahi mila!" },
         { status: 404 }
       );
     }
 
     account.password = password;
     await account.save();
-
-    // 3. Delete used OTP
-    await Otp.deleteMany({ email: cleanEmail });
 
     return NextResponse.json({
       success: true,

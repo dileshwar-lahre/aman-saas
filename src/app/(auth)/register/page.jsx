@@ -7,7 +7,6 @@ import {
   FiArrowRight,
   FiX,
   FiUser,
-  FiMail,
   FiPhone,
   FiMapPin,
   FiKey,
@@ -26,7 +25,6 @@ export default function RegisterPage() {
 
   // Form Fields
   const [phone, setPhone] = useState("");
-  const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -45,13 +43,9 @@ export default function RegisterPage() {
   const handleSendOtp = async (e) => {
     e.preventDefault();
 
-    if (!phone || phone.replace(/[^0-9]/g, "").length < 10) {
+    const cleanPhone = phone.replace(/[^0-9]/g, "").slice(-10);
+    if (!cleanPhone || cleanPhone.length < 10) {
       setMessage({ type: "error", text: "Valid 10-digit WhatsApp Phone Number daalein!" });
-      return;
-    }
-
-    if (!email) {
-      setMessage({ type: "error", text: "Gmail address zaroori hai!" });
       return;
     }
 
@@ -62,11 +56,7 @@ export default function RegisterPage() {
       const res = await fetch("/api/auth/send-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          phone: phone.replace(/[^0-9]/g, "").slice(-10),
-          email,
-          role,
-        }),
+        body: JSON.stringify({ mobile: cleanPhone }),
       });
 
       const data = await res.json();
@@ -99,12 +89,14 @@ export default function RegisterPage() {
     setLoading(true);
     setMessage({ type: "", text: "" });
 
+    const cleanPhone = phone.replace(/[^0-9]/g, "").slice(-10);
+
     try {
-      const res = await fetch("/api/auth/verify-otp", {
-        method: "POST",
+      const res = await fetch("/api/auth/send-otp", {
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          phone: phone.replace(/[^0-9]/g, "").slice(-10),
+          mobile: cleanPhone,
           otp: otp.trim(),
         }),
       });
@@ -155,11 +147,10 @@ export default function RegisterPage() {
 
     const payload =
       role === "customer"
-        ? { name, email, phone: cleanPhone, password, otp: otp.trim() }
+        ? { name, phone: cleanPhone, password, otp: otp.trim() }
         : {
             restaurantName,
             ownerName,
-            email,
             phone: cleanPhone,
             location,
             password,
@@ -194,7 +185,7 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F3F4F6] text-black flex items-center justify-center pb-28 font-sans antialiased select-none px-4 relative overflow-hidden">
+    <div className="min-h-screen bg-[#FFF5F5] text-black flex items-center justify-center pb-28 font-sans antialiased select-none px-4 relative overflow-hidden">
       <style jsx global>{`
         @keyframes isometric-3d-pop {
           0% {
@@ -212,19 +203,19 @@ export default function RegisterPage() {
       `}</style>
 
       {/* Main Registration Card Container */}
-      <div className="w-full max-w-[420px] bg-white rounded-[2.5rem] p-8 md:p-10 relative z-50 animate-3d-popup shadow-[0_20px_50px_rgba(0,0,0,0.1),0_4px_12px_rgba(0,0,0,0.05),inset_0_1px_0_rgba(255,255,255,1)] border border-neutral-100">
+      <div className="w-full max-w-[420px] bg-white rounded-[2.5rem] p-8 md:p-10 relative z-50 animate-3d-popup shadow-[0_20px_50px_rgba(220,38,38,0.1),0_4px_12px_rgba(0,0,0,0.05),inset_0_1px_0_rgba(255,255,255,1)] border border-red-50">
         
         {/* Floating Close Button */}
         <Link
           href="/"
-          className="absolute top-6 right-6 w-8 h-8 bg-neutral-50 rounded-full flex items-center justify-center text-neutral-400 hover:text-black hover:bg-neutral-100 transition-all active:scale-90"
+          className="absolute top-6 right-6 w-8 h-8 bg-neutral-50 rounded-full flex items-center justify-center text-neutral-400 hover:text-red-600 hover:bg-red-50 transition-all active:scale-90"
         >
           <FiX className="text-sm" />
         </Link>
 
         {/* Header */}
         <div className="text-center space-y-1 mb-6 pt-2">
-          <h1 className="text-3xl font-black tracking-widest text-black uppercase font-sans">
+          <h1 className="text-3xl font-black tracking-widest text-neutral-900 uppercase font-sans">
             {step === 1 && "REGISTER"}
             {step === 2 && "VERIFY OTP"}
             {step === 3 && "SET PASSWORD"}
@@ -260,7 +251,7 @@ export default function RegisterPage() {
                 }}
                 className={`flex items-center justify-center gap-2 py-3 rounded-xl transition-all active:scale-[0.98] ${
                   role === "owner"
-                    ? "bg-black text-white font-black shadow-md shadow-black/10"
+                    ? "bg-red-600 text-white font-black shadow-lg shadow-red-600/20"
                     : "bg-neutral-50 text-neutral-400 font-bold hover:text-black hover:bg-neutral-100"
                 }`}
               >
@@ -278,7 +269,7 @@ export default function RegisterPage() {
                 }}
                 className={`flex items-center justify-center gap-2 py-3 rounded-xl transition-all active:scale-[0.98] ${
                   role === "customer"
-                    ? "bg-black text-white font-black shadow-md shadow-black/10"
+                    ? "bg-red-600 text-white font-black shadow-lg shadow-red-600/20"
                     : "bg-neutral-50 text-neutral-400 font-bold hover:text-black hover:bg-neutral-100"
                 }`}
               >
@@ -298,7 +289,7 @@ export default function RegisterPage() {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Full Name"
-                    className="w-full bg-[#F3F4F6] border border-neutral-200/40 rounded-full py-4 pl-6 pr-12 text-xs font-bold text-black placeholder-neutral-400 focus:outline-none focus:bg-white focus:border-black transition-all shadow-inner"
+                    className="w-full bg-[#F9FAFB] border border-neutral-200/60 rounded-full py-4 pl-6 pr-12 text-xs font-bold text-black placeholder-neutral-400 focus:outline-none focus:bg-white focus:border-red-600 transition-all shadow-inner"
                   />
                   <FiUser className="absolute right-5 text-neutral-400 text-sm pointer-events-none" />
                 </div>
@@ -313,7 +304,7 @@ export default function RegisterPage() {
                       value={restaurantName}
                       onChange={(e) => setRestaurantName(e.target.value)}
                       placeholder="Restaurant Name"
-                      className="w-full bg-[#F3F4F6] border border-neutral-200/40 rounded-full py-4 pl-6 pr-12 text-xs font-bold text-black placeholder-neutral-400 focus:outline-none focus:bg-white focus:border-black transition-all shadow-inner"
+                      className="w-full bg-[#F9FAFB] border border-neutral-200/60 rounded-full py-4 pl-6 pr-12 text-xs font-bold text-black placeholder-neutral-400 focus:outline-none focus:bg-white focus:border-red-600 transition-all shadow-inner"
                     />
                     <LuChefHat className="absolute right-5 text-neutral-400 text-sm pointer-events-none" />
                   </div>
@@ -325,7 +316,7 @@ export default function RegisterPage() {
                       value={ownerName}
                       onChange={(e) => setOwnerName(e.target.value)}
                       placeholder="Owner Name"
-                      className="w-full bg-[#F3F4F6] border border-neutral-200/40 rounded-full py-4 pl-6 pr-12 text-xs font-bold text-black placeholder-neutral-400 focus:outline-none focus:bg-white focus:border-black transition-all shadow-inner"
+                      className="w-full bg-[#F9FAFB] border border-neutral-200/60 rounded-full py-4 pl-6 pr-12 text-xs font-bold text-black placeholder-neutral-400 focus:outline-none focus:bg-white focus:border-red-600 transition-all shadow-inner"
                     />
                     <FiUser className="absolute right-5 text-neutral-400 text-sm pointer-events-none" />
                   </div>
@@ -336,8 +327,8 @@ export default function RegisterPage() {
                       required
                       value={location}
                       onChange={(e) => setLocation(e.target.value)}
-                      placeholder="Location / Address"
-                      className="w-full bg-[#F3F4F6] border border-neutral-200/40 rounded-full py-4 pl-6 pr-12 text-xs font-bold text-black placeholder-neutral-400 focus:outline-none focus:bg-white focus:border-black transition-all shadow-inner"
+                      placeholder="Address / Location"
+                      className="w-full bg-[#F9FAFB] border border-neutral-200/60 rounded-full py-4 pl-6 pr-12 text-xs font-bold text-black placeholder-neutral-400 focus:outline-none focus:bg-white focus:border-red-600 transition-all shadow-inner"
                     />
                     <FiMapPin className="absolute right-5 text-neutral-400 text-sm pointer-events-none" />
                   </div>
@@ -352,32 +343,15 @@ export default function RegisterPage() {
                   placeholder="WhatsApp Mobile Number"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="w-full bg-[#F3F4F6] border border-neutral-200/40 rounded-full py-4 pl-6 pr-12 text-xs font-bold text-black placeholder-neutral-400 focus:outline-none focus:bg-white focus:border-black transition-all shadow-inner"
+                  className="w-full bg-[#F9FAFB] border border-neutral-200/60 rounded-full py-4 pl-6 pr-12 text-xs font-bold text-black placeholder-neutral-400 focus:outline-none focus:bg-white focus:border-red-600 transition-all shadow-inner"
                 />
                 <FiPhone className="absolute right-5 text-neutral-400 text-sm pointer-events-none" />
-              </div>
-
-              {/* Gmail Address Field */}
-              <div className="relative flex items-center">
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Gmail Address"
-                  className="w-full bg-[#F3F4F6] border border-neutral-200/40 rounded-full py-4 pl-6 pr-12 text-xs font-bold text-black placeholder-neutral-400 focus:outline-none focus:bg-white focus:border-black transition-all shadow-inner"
-                />
-                <FiMail className="absolute right-5 text-neutral-400 text-sm pointer-events-none" />
               </div>
 
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full text-white font-black text-xs uppercase tracking-widest py-4.5 rounded-full transition-all flex items-center justify-center gap-2 active:scale-[0.98] shadow-md mt-6 hover:brightness-110 disabled:opacity-50"
-                style={{
-                  backgroundColor: "#FF9900",
-                  boxShadow: "0 4px 14px rgba(255, 153, 0, 0.4)",
-                }}
+                className="w-full text-white font-black text-xs uppercase tracking-widest py-4.5 rounded-full transition-all flex items-center justify-center gap-2 active:scale-[0.98] shadow-md mt-6 hover:brightness-110 disabled:opacity-50 bg-red-600 shadow-[0_4px_14px_rgba(220,38,38,0.4)]"
               >
                 <span>{loading ? "SENDING WHATSAPP OTP..." : "SEND OTP CODE"}</span>
                 <FiArrowRight className="text-sm" />
@@ -389,13 +363,13 @@ export default function RegisterPage() {
         {/* STEP 2: WHATSAPP OTP POPUP SCREEN */}
         {step === 2 && (
           <div className="animate-3d-popup space-y-4">
-            <div className="text-center bg-neutral-50 p-4 rounded-2xl border border-neutral-100">
-              <FiShield className="mx-auto text-xl text-[#FF9900] mb-1" />
+            <div className="text-center bg-red-50/50 p-4 rounded-2xl border border-red-100">
+              <FiShield className="mx-auto text-xl text-red-600 mb-1" />
               <p className="text-xs font-bold text-neutral-700">
                 OTP Sent to WhatsApp: <span className="text-black">{phone}</span>
               </p>
               <p className="text-[10px] text-neutral-400">
-                Primary phone ke WhatsApp app me code check karein.
+                WhatsApp par bheja gaya 4-digit code yahan daalein.
               </p>
             </div>
 
@@ -408,7 +382,7 @@ export default function RegisterPage() {
                   value={otp}
                   onChange={(e) => setOtp(e.target.value)}
                   placeholder="Enter 4-Digit OTP"
-                  className="w-full bg-[#F3F4F6] border border-black rounded-full py-4 pl-6 pr-12 text-sm font-black text-black tracking-[8px] placeholder-normal placeholder:tracking-normal placeholder-neutral-400 focus:outline-none focus:bg-white transition-all shadow-inner text-center"
+                  className="w-full bg-[#F9FAFB] border border-red-600 rounded-full py-4 pl-6 pr-12 text-sm font-black text-black tracking-[8px] placeholder-normal placeholder:tracking-normal placeholder-neutral-400 focus:outline-none focus:bg-white transition-all shadow-inner text-center"
                 />
                 <FiKey className="absolute right-5 text-neutral-400 text-sm pointer-events-none" />
               </div>
@@ -424,7 +398,7 @@ export default function RegisterPage() {
                 <button
                   type="button"
                   onClick={handleSendOtp}
-                  className="text-[#FF9900] hover:underline"
+                  className="text-red-600 hover:underline"
                 >
                   Resend OTP ?
                 </button>
@@ -433,11 +407,7 @@ export default function RegisterPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full text-white font-black text-xs uppercase tracking-widest py-4.5 rounded-full transition-all flex items-center justify-center gap-2 active:scale-[0.98] shadow-md mt-4 hover:brightness-110 disabled:opacity-50"
-                style={{
-                  backgroundColor: "#FF9900",
-                  boxShadow: "0 4px 14px rgba(255, 153, 0, 0.4)",
-                }}
+                className="w-full text-white font-black text-xs uppercase tracking-widest py-4.5 rounded-full transition-all flex items-center justify-center gap-2 active:scale-[0.98] shadow-md mt-4 hover:brightness-110 disabled:opacity-50 bg-red-600 shadow-[0_4px_14px_rgba(220,38,38,0.4)]"
               >
                 <span>{loading ? "VERIFYING..." : "VERIFY OTP"}</span>
                 <FiCheckCircle className="text-sm" />
@@ -463,7 +433,7 @@ export default function RegisterPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="New Password (min 6 characters)"
-                  className="w-full bg-[#F3F4F6] border border-neutral-200/40 rounded-full py-4 pl-6 pr-12 text-xs font-bold text-black placeholder-neutral-400 focus:outline-none focus:bg-white focus:border-black transition-all shadow-inner"
+                  className="w-full bg-[#F9FAFB] border border-neutral-200/60 rounded-full py-4 pl-6 pr-12 text-xs font-bold text-black placeholder-neutral-400 focus:outline-none focus:bg-white focus:border-red-600 transition-all shadow-inner"
                 />
                 <FiLock className="absolute right-5 text-neutral-400 text-sm pointer-events-none" />
               </div>
@@ -475,7 +445,7 @@ export default function RegisterPage() {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="Confirm Password"
-                  className="w-full bg-[#F3F4F6] border border-neutral-200/40 rounded-full py-4 pl-6 pr-12 text-xs font-bold text-black placeholder-neutral-400 focus:outline-none focus:bg-white focus:border-black transition-all shadow-inner"
+                  className="w-full bg-[#F9FAFB] border border-neutral-200/60 rounded-full py-4 pl-6 pr-12 text-xs font-bold text-black placeholder-neutral-400 focus:outline-none focus:bg-white focus:border-red-600 transition-all shadow-inner"
                 />
                 <FiLock className="absolute right-5 text-neutral-400 text-sm pointer-events-none" />
               </div>
@@ -483,11 +453,7 @@ export default function RegisterPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full text-white font-black text-xs uppercase tracking-widest py-4.5 rounded-full transition-all flex items-center justify-center gap-2 active:scale-[0.98] shadow-md mt-6 hover:brightness-110 disabled:opacity-50"
-                style={{
-                  backgroundColor: "#FF9900",
-                  boxShadow: "0 4px 14px rgba(255, 153, 0, 0.4)",
-                }}
+                className="w-full text-white font-black text-xs uppercase tracking-widest py-4.5 rounded-full transition-all flex items-center justify-center gap-2 active:scale-[0.98] shadow-md mt-6 hover:brightness-110 disabled:opacity-50 bg-red-600 shadow-[0_4px_14px_rgba(220,38,38,0.4)]"
               >
                 <span>{loading ? "CREATING ACCOUNT..." : "FINALIZE REGISTRATION"}</span>
                 <FiCheckCircle className="text-sm" />
@@ -500,8 +466,7 @@ export default function RegisterPage() {
         <div className="text-center pt-6 mt-6 border-t border-neutral-100">
           <Link
             href="/login"
-            className="text-xs font-bold uppercase tracking-widest hover:brightness-110 transition-all"
-            style={{ color: "#FF9900" }}
+            className="text-xs font-bold uppercase tracking-widest hover:brightness-110 transition-all text-red-600"
           >
             Already Have An Account? Login
           </Link>
@@ -509,8 +474,8 @@ export default function RegisterPage() {
       </div>
 
       {/* Decorative Highlights */}
-      <div className="absolute top-[-10%] right-[-10%] w-96 h-96 bg-amber-500/5 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-[-10%] left-[-10%] w-96 h-96 bg-neutral-900/[0.02] rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute top-[-10%] right-[-10%] w-96 h-96 bg-red-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-[-10%] left-[-10%] w-96 h-96 bg-rose-900/[0.03] rounded-full blur-3xl pointer-events-none" />
     </div>
   );
 }
