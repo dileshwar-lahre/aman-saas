@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
+    "groq-sdk": "^1.6.0",
     "html5-qrcode": "^2.3.8",
     "jsonwebtoken": "^9.0.3",
     "mongodb": "^7.5.0",
