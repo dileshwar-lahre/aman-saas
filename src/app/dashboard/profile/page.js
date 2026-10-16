@@ -1,12 +1,15 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { FiCamera, FiMapPin, FiChevronRight, FiGift, FiBookOpen } from "react-icons/fi";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export default function UserDashboard() {
+  const router = useRouter();
   const [customerId, setCustomerId] = useState("");
   const [scannedList, setScannedList] = useState([]);
   const [loading, setLoading] = useState(true);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     let cid = localStorage.getItem("ady_customer_id");
@@ -33,9 +36,21 @@ export default function UserDashboard() {
     }
   };
 
-  const handleOpenScanner = () => {
-    // Triggers camera or redirects to scanner route
-    alert("📷 QR Camera Scanner Opening! Scan table QR to open restaurant pass.");
+  // 📷 Native Phone Camera Trigger for QR Scan
+  const handleScanClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  // Jab user phone camera se QR photo capture kare ya upload kare
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Yahan hum QR decoding library ya direct URL redirection handle kar sakte hain
+    // Testing ke liye aap direct simulator ya manual link test kar rahe ho toh:
+    alert("📷 Photo capture ho gayi! (Note: Real QR decode ke liye aap restaurant ka direct link bhi use kar sakte hain)");
   };
 
   if (loading) {
@@ -47,21 +62,31 @@ export default function UserDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white pb-16">
+    <div className="min-h-screen bg-slate-950 text-white pb-16 font-sans">
+      {/* Hidden File Input jo phone ka native camera/gallery kholega */}
+      <input
+        type="file"
+        accept="image/*"
+        capture="environment"
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        className="hidden"
+      />
+
       {/* Top Red Bar */}
-      <div className="bg-gradient-to-r from-red-600 to-rose-700 p-6 shadow-xl rounded-b-3xl">
+      <div className="bg-gradient-to-r from-red-600 to-rose-700 p-6 shadow-xl rounded-b-[2.5rem]">
         <div className="max-w-2xl mx-auto flex justify-between items-center">
           <div>
-            <span className="bg-white/20 text-[10px] font-black uppercase px-3 py-1 rounded-full text-white">
+            <span className="bg-white/20 text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full text-white">
               Customer Hub
             </span>
             <h1 className="text-2xl font-black mt-2">My Dining Passbook</h1>
             <p className="text-xs text-red-100">Aapke saare scanned restaurants ek jagah</p>
           </div>
 
-          {/* SCAN QR BUTTON */}
+          {/* SCAN QR BUTTON - Triggers Native Camera */}
           <button
-            onClick={handleOpenScanner}
+            onClick={handleScanClick}
             className="bg-white text-red-600 p-3.5 rounded-2xl shadow-lg font-black text-xs uppercase flex items-center gap-2 hover:bg-slate-100 transition-all active:scale-95"
           >
             <FiCamera className="text-lg" /> Scan QR
@@ -77,15 +102,15 @@ export default function UserDashboard() {
         </div>
 
         {scannedList.length === 0 ? (
-          <div className="bg-slate-900 border border-slate-800 p-8 rounded-3xl text-center space-y-3">
+          <div className="bg-slate-900 border border-slate-800 p-8 rounded-3xl text-center space-y-3 shadow-xl">
             <FiBookOpen className="text-4xl text-slate-600 mx-auto" />
             <h3 className="text-base font-black text-slate-300">Koi Restaurant Scan Nahi Kiya!</h3>
             <p className="text-xs text-slate-500">
               Restaurant me jaakar unka Table QR code scan karein aur yahan list add karein.
             </p>
             <button
-              onClick={handleOpenScanner}
-              className="px-6 py-3 bg-red-600 text-white font-black text-xs uppercase rounded-xl shadow-lg inline-flex items-center gap-2"
+              onClick={handleScanClick}
+              className="px-6 py-3 bg-red-600 text-white font-black text-xs uppercase rounded-xl shadow-lg inline-flex items-center gap-2 hover:bg-red-700 transition-all"
             >
               <FiCamera /> Scan First Restaurant
             </button>
@@ -99,7 +124,7 @@ export default function UserDashboard() {
               return (
                 <Link
                   key={item._id}
-                  href={`/dashboard/restaurant/${resto._id}`}
+                  href={`/restaurant/${resto._id}`}
                   className="block bg-slate-900 border border-slate-800 hover:border-red-500/50 p-5 rounded-3xl transition-all shadow-lg group"
                 >
                   <div className="flex justify-between items-start">

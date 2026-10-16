@@ -14,7 +14,6 @@ export default function CustomerLoyaltyPage({ params }) {
   const [requesting, setRequesting] = useState(false);
 
   useEffect(() => {
-    // Generate or fetch client persistent ID
     let existingId = localStorage.getItem("ady_customer_id");
     if (!existingId) {
       existingId = "cust_" + Math.random().toString(36).substring(2, 9);
@@ -31,6 +30,10 @@ export default function CustomerLoyaltyPage({ params }) {
       const data = await res.json();
       if (data.success && data.record) {
         setRecord(data.record);
+        // Agar pichla status approved tha, toh naye din/visit ke liye scratch state reset rakho taaki naya card khul sake
+        if (data.record.approvalStatus === "approved") {
+          setIsScratched(false);
+        }
       }
     } catch (err) {
       console.error(err);
@@ -78,11 +81,11 @@ export default function CustomerLoyaltyPage({ params }) {
   const status = record?.approvalStatus || "none";
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-slate-900 rounded-3xl p-6 border border-slate-800 shadow-2xl text-center space-y-6">
+    <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-4 font-sans">
+      <div className="max-w-md w-full bg-slate-900 rounded-[2.5rem] p-6 md:p-8 border border-slate-800 shadow-2xl text-center space-y-6">
         
-        <span className="bg-red-600/20 text-red-400 text-xs font-black uppercase tracking-widest px-4 py-1.5 rounded-full border border-red-500/30">
-          Digital Loyalty Card
+        <span className="bg-red-600/20 text-red-400 text-[10px] font-black uppercase tracking-widest px-4 py-1.5 rounded-full border border-red-500/30">
+          Digital Loyalty Passbook
         </span>
 
         <div>
@@ -93,20 +96,26 @@ export default function CustomerLoyaltyPage({ params }) {
         {/* 6 STAMPS PROGRESS GRID */}
         <div className="grid grid-cols-6 gap-2">
           {[1, 2, 3, 4, 5, 6].map((num) => {
-            const isDone = num < currentStamp;
-            const isCurrent = num === currentStamp;
+            const isDone = status === "approved" ? num <= currentStamp : num < currentStamp;
+            const isCurrent = num === currentStamp && status !== "approved";
             return (
               <div
                 key={num}
                 className={`h-12 rounded-xl flex items-center justify-center font-black text-xs transition-all ${
-                  isDone
+                  num < currentStamp || (num === currentStamp && status === "approved")
                     ? "bg-emerald-600 text-white"
                     : isCurrent
                     ? "bg-red-600 text-white ring-2 ring-red-400 shadow-lg shadow-red-600/40"
                     : "bg-slate-800 text-slate-600 border border-slate-700"
                 }`}
               >
-                {isDone ? <FiCheck className="text-base stroke-[3]" /> : num === 6 ? <FiGift /> : `#${num}`}
+                {num < currentStamp || (num === currentStamp && status === "approved") ? (
+                  <FiCheck className="text-base stroke-[3]" />
+                ) : num === 6 ? (
+                  <FiGift />
+                ) : (
+                  `#${num}`
+                )}
               </div>
             );
           })}
@@ -138,10 +147,6 @@ export default function CustomerLoyaltyPage({ params }) {
           <div className="bg-amber-500/10 border border-amber-500/30 text-amber-400 p-4 rounded-2xl flex items-center justify-center gap-2 text-xs font-bold animate-pulse">
             <FiClock className="animate-spin text-base" /> Owner Approval Pending...
           </div>
-        ) : status === "approved" ? (
-          <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 p-4 rounded-2xl text-xs font-bold flex items-center justify-center gap-2">
-            <FiCheck className="text-lg stroke-[3]" /> Stamp Approved! Next Stamp Unlocked.
-          </div>
         ) : status === "rejected" ? (
           <div className="bg-red-500/10 border border-red-500/30 text-red-400 p-4 rounded-2xl text-xs font-bold flex items-center justify-center gap-2">
             <FiAlertCircle className="text-lg" /> Request Rejected By Restaurant.
@@ -152,11 +157,11 @@ export default function CustomerLoyaltyPage({ params }) {
             disabled={!isScratched || requesting}
             className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all ${
               isScratched
-                ? "bg-red-600 hover:bg-red-500 text-white shadow-xl shadow-red-600/30"
+                ? "bg-red-600 hover:bg-red-500 text-white shadow-xl shadow-red-600/30 active:scale-95"
                 : "bg-slate-800 text-slate-500 cursor-not-allowed"
             }`}
           >
-            {requesting ? "Sending..." : "Claim Offer Now"}
+            {requesting ? "Sending Request..." : "Claim Offer Now"}
           </button>
         )}
 

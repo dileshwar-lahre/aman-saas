@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
-import { FaStar, FaCopy, FaExternalLinkAlt, FaMagic, FaInstagram, FaFacebook } from "react-icons/fa";
+import { FaStar, FaCopy, FaExternalLinkAlt, FaMagic, FaInstagram, FaFacebook, FaCheck } from "react-icons/fa";
 
 export default function CustomerReviewPage() {
   const { id } = useParams();
@@ -41,53 +41,72 @@ export default function CustomerReviewPage() {
   };
 
   const handlePostReview = () => {
-    // Clipboard me copy karo
     navigator.clipboard.writeText(review);
     setCopied(true);
 
-    // Google Maps Review URL par redirect
     const targetUrl = restaurant?.socialLinks?.googleReviewUrl || "https://maps.google.com";
     setTimeout(() => {
       window.location.href = targetUrl;
-    }, 700);
+    }, 800);
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white flex flex-col items-center justify-center p-4">
-      <div className="max-w-md w-full bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-2xl text-center">
+    <div className="min-h-screen bg-[#FFF5F5] text-slate-900 flex flex-col items-center justify-center p-4 font-sans antialiased">
+      <div className="max-w-md w-full bg-white rounded-[2.5rem] p-8 shadow-[0_20px_50px_rgba(220,38,38,0.08)] border border-red-50 text-center space-y-6">
         
-        <h1 className="text-xl font-bold text-white mb-1">
-          {restaurant?.name || "Restaurant"}
-        </h1>
-        <p className="text-red-500 text-sm font-medium mb-4">Share your 5-Star Experience ⭐</p>
+        {/* Badge */}
+        <span className="bg-amber-100 text-amber-800 text-[10px] font-black uppercase tracking-widest px-4 py-1.5 rounded-full inline-flex items-center gap-1.5 shadow-sm">
+          <FaStar className="text-amber-500" /> Google Review Portal
+        </span>
+
+        <div className="space-y-1">
+          <h1 className="text-2xl font-black text-neutral-900">
+            {restaurant?.name || restaurant?.restaurantName || "Restaurant Partner"}
+          </h1>
+          <p className="text-xs text-red-600 font-bold">Share your 5-Star Experience ⭐</p>
+        </div>
 
         {/* Dynamic 5-Stars */}
-        <div className="flex justify-center gap-2 mb-6">
+        <div className="flex justify-center gap-2 py-1">
           {[...Array(5)].map((_, i) => (
-            <FaStar key={i} className="text-amber-400 text-2xl hover:scale-125 transition-transform cursor-pointer" />
+            <FaStar key={i} className="text-amber-400 text-2xl hover:scale-125 transition-transform cursor-pointer drop-shadow-sm" />
           ))}
         </div>
 
         {/* AI Review Text Box */}
-        <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 text-slate-200 text-sm mb-3 min-h-[90px] flex items-center justify-center">
-          {loading ? "Generating fresh AI Review..." : `"${review}"`}
+        <div className="bg-[#F9FAFB] p-5 rounded-2xl border border-neutral-200/80 text-neutral-800 text-xs font-bold leading-relaxed min-h-[100px] flex items-center justify-center relative shadow-inner">
+          {loading ? (
+            <span className="text-neutral-400 animate-pulse uppercase tracking-wider text-[10px] font-black">
+              Generating fresh AI Review...
+            </span>
+          ) : (
+            `"${review}"`
+          )}
         </div>
 
         {/* Regenerate Button */}
         <button
           onClick={fetchAIReview}
           disabled={loading}
-          className="flex items-center justify-center gap-2 text-xs text-red-400 hover:text-red-300 mb-6 mx-auto transition"
+          className="flex items-center justify-center gap-2 text-xs font-black uppercase tracking-wider text-red-600 hover:text-red-700 mx-auto transition-all active:scale-95 bg-red-50 px-4 py-2 rounded-xl border border-red-100"
         >
-          <FaMagic /> Regenerate AI Review
+          <FaMagic className="text-sm" /> Regenerate AI Review
         </button>
 
         {/* Main CTA Button */}
         <button
           onClick={handlePostReview}
-          className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3.5 px-6 rounded-2xl flex items-center justify-center gap-2 transition shadow-lg shadow-red-600/30 mb-6"
+          className={`w-full py-4 px-6 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-xl active:scale-95 ${
+            copied
+              ? "bg-emerald-500 text-white shadow-emerald-500/20"
+              : "bg-red-600 hover:bg-red-700 text-white shadow-red-600/30"
+          }`}
         >
-          {copied ? "Copied! Opening Google Review..." : (
+          {copied ? (
+            <>
+              <FaCheck className="text-sm stroke-[3]" /> Copied! Opening Google Review...
+            </>
+          ) : (
             <>
               <FaCopy /> Copy & Post on Google <FaExternalLinkAlt className="text-xs" />
             </>
@@ -96,16 +115,16 @@ export default function CustomerReviewPage() {
 
         {/* Social Follow Links */}
         {(restaurant?.socialLinks?.instagram || restaurant?.socialLinks?.facebook) && (
-          <div className="pt-4 border-t border-slate-800 flex justify-center items-center gap-4">
-            <span className="text-xs text-slate-400">Follow Us:</span>
+          <div className="pt-4 border-t border-neutral-100 flex justify-center items-center gap-4">
+            <span className="text-[11px] font-bold text-neutral-400 uppercase tracking-wider">Follow Us:</span>
             {restaurant?.socialLinks?.instagram && (
-              <a href={restaurant.socialLinks.instagram} target="_blank" rel="noreferrer" className="text-pink-500 hover:scale-110 transition">
-                <FaInstagram className="text-xl" />
+              <a href={restaurant.socialLinks.instagram} target="_blank" rel="noreferrer" className="w-9 h-9 bg-pink-50 text-pink-600 border border-pink-100 rounded-xl flex items-center justify-center hover:scale-110 transition-all shadow-sm">
+                <FaInstagram className="text-base" />
               </a>
             )}
             {restaurant?.socialLinks?.facebook && (
-              <a href={restaurant.socialLinks.facebook} target="_blank" rel="noreferrer" className="text-blue-500 hover:scale-110 transition">
-                <FaFacebook className="text-xl" />
+              <a href={restaurant.socialLinks.facebook} target="_blank" rel="noreferrer" className="w-9 h-9 bg-blue-50 text-blue-600 border border-blue-100 rounded-xl flex items-center justify-center hover:scale-110 transition-all shadow-sm">
+                <FaFacebook className="text-base" />
               </a>
             )}
           </div>
