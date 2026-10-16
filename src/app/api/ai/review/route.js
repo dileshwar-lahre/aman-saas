@@ -1,14 +1,21 @@
 import { NextResponse } from "next/server";
 import Groq from "groq-sdk";
 
-// Groq client initialize karo API key ke sath
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-
 export async function POST(req) {
   try {
+    // 🛑 Runtime par check karega, build time par error nahi aayega
+    const apiKey = process.env.GROQ_API_KEY;
+    if (!apiKey) {
+      return NextResponse.json(
+        { success: false, error: "GROQ_API_KEY environment variable is missing!" },
+        { status: 500 }
+      );
+    }
+
+    const groq = new Groq({ apiKey });
+
     const { restaurantName, vibe } = await req.json();
 
-    // Groq LLM (Llama 3) ko prompt bhej rahe hain review generate karne ke liye
     const completion = await groq.chat.completions.create({
       model: "llama3-8b-8192",
       messages: [
@@ -21,7 +28,7 @@ export async function POST(req) {
           content: `Write a glowing Google review for a restaurant named "${restaurantName || "this restaurant"}" with a ${vibe || "great food and amazing service"} vibe.`
         }
       ],
-      temperature: 0.7,
+      temperature: 1.2,
     });
 
     const generatedReview = completion.choices[0]?.message?.content || "Amazing food and wonderful service! Highly recommend. ⭐⭐⭐⭐⭐";
