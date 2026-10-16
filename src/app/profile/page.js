@@ -117,7 +117,7 @@ export default function RestaurantOwnerDashboard() {
     );
   }
 
-  const aiReviewPageUrl = `${hostUrl}/restaurant/${restaurant?._id}/review`;
+  const googleReviewLink = restaurant?.socialLinks?.googleReviewUrl || restaurant?.googleReviewUrl || hostUrl;
   const hasSocialLinks = restaurant?.socialLinks?.instagram || restaurant?.socialLinks?.facebook;
 
   return (
@@ -335,19 +335,24 @@ export default function RestaurantOwnerDashboard() {
               </button>
             </div>
 
-            {/* 3. AI Review Page QR */}
+            {/* 3. Google Review QR */}
             <div className="bg-amber-50/50 p-6 rounded-3xl border border-amber-100 text-center flex flex-col items-center">
               <span className="text-[10px] font-black uppercase bg-amber-500 text-white px-3 py-1 rounded-full mb-4 shadow-md shadow-amber-500/20">3. Review QR</span>
               <div className="bg-white p-3 rounded-2xl shadow-sm border border-amber-100">
-                <QRCodeSVG id="review-qr-svg" value={aiReviewPageUrl} size={130} />
+                <QRCodeSVG id="review-qr-svg" value={googleReviewLink} size={130} />
               </div>
-              <p className="text-xs font-black text-neutral-800 mt-4">AI Review Page QR</p>
+              <p className="text-xs font-black text-neutral-800 mt-4">Google Review QR</p>
               <button
-                onClick={() => downloadQRCode("review-qr-svg", `${restaurant?.restaurantName || "restaurant"}-ai-review-qr`)}
+                onClick={() => downloadQRCode("review-qr-svg", `${restaurant?.restaurantName || "restaurant"}-google-review-qr`)}
                 className="mt-4 w-full bg-amber-500 text-white py-2.5 px-4 rounded-xl text-[11px] font-black uppercase flex items-center justify-center gap-2 hover:bg-amber-600 transition-all shadow-md shadow-amber-500/20 active:scale-95"
               >
                 <FiDownload /> Download QR
               </button>
+              {!restaurant?.socialLinks?.googleReviewUrl && (
+                <Link href="/update-social" className="text-[10px] text-red-600 font-bold underline mt-2 hover:text-red-700">
+                  Add Google Review Link
+                </Link>
+              )}
             </div>
           </div>
         </div>
