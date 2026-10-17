@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -16,25 +16,20 @@ import {
 } from "react-icons/fi";
 import { LuChefHat } from "react-icons/lu";
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectUrl = searchParams.get("redirect");
 
-  // Role Control ('owner' ya 'customer')
   const [role, setRole] = useState("owner");
-
-  // Form Fields
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  // Page Loading & Feedback States
   const [loading, setLoading] = useState(false);
   const [pageChecking, setPageChecking] = useState(true);
   const [message, setMessage] = useState({ type: "", text: "" });
 
-  // Forgot Password Modal States
   const [isForgotOpen, setIsForgotOpen] = useState(false);
   const [forgotStep, setForgotStep] = useState(1);
   const [forgotPhone, setForgotPhone] = useState("");
@@ -45,15 +40,11 @@ export default function LoginPage() {
   const [forgotLoading, setForgotLoading] = useState(false);
   const [forgotMsg, setForgotMsg] = useState({ type: "", text: "" });
 
-  // ------------------------------------------------------------------
-  // ⚡ 1. AUTO-LOGIN CHECK
-  // ------------------------------------------------------------------
   useEffect(() => {
     fetch("/api/auth/me")
       .then((res) => res.json())
       .then((data) => {
         if (data.success) {
-          // Agar redirect URL pehle se hai toh wahan bhej do, nahi toh role ke hisaab se
           const targetPath = redirectUrl || (data.user?.role === "restaurant" ? "/profile" : "/dashboard/profile");
           router.push(targetPath);
         } else {
@@ -63,9 +54,6 @@ export default function LoginPage() {
       .catch(() => setPageChecking(false));
   }, [router, redirectUrl]);
 
-  // ------------------------------------------------------------------
-  // 🔐 2. LOGIN HANDLER (Mobile & Password)
-  // ------------------------------------------------------------------
   const handleLogin = async (e) => {
     e.preventDefault();
     const cleanPhone = phone.replace(/[^0-9]/g, "").slice(-10);
@@ -94,7 +82,6 @@ export default function LoginPage() {
       if (data.success) {
         setMessage({ type: "success", text: "🎉 Login Successful! Redirecting..." });
         setTimeout(() => {
-          // ✅ Agar user kisi scanned link (jaise loyalty/menu) se redirect hoke aaya tha, wahi wapas bhejo!
           const destination = redirectUrl || data.redirectPath || (role === "owner" ? "/profile" : "/dashboard/profile");
           router.push(destination);
         }, 1000);
@@ -108,9 +95,6 @@ export default function LoginPage() {
     }
   };
 
-  // ------------------------------------------------------------------
-  // 🔑 3. FORGOT PASSWORD - STEP 1: SEND OTP TO WHATSAPP
-  // ------------------------------------------------------------------
   const handleSendForgotOtp = async (e) => {
     e.preventDefault();
     const cleanPhone = forgotPhone.replace(/[^0-9]/g, "").slice(-10);
@@ -148,9 +132,6 @@ export default function LoginPage() {
     }
   };
 
-  // ------------------------------------------------------------------
-  // 🔐 4. FORGOT PASSWORD - STEP 2: VERIFY OTP
-  // ------------------------------------------------------------------
   const handleVerifyForgotOtp = async (e) => {
     e.preventDefault();
     if (!forgotOtp || forgotOtp.trim().length !== 4) {
@@ -185,9 +166,6 @@ export default function LoginPage() {
     }
   };
 
-  // ------------------------------------------------------------------
-  // 🔄 5. FORGOT PASSWORD - STEP 3: RESET PASSWORD
-  // ------------------------------------------------------------------
   const handleResetPassword = async (e) => {
     e.preventDefault();
 
@@ -265,10 +243,8 @@ export default function LoginPage() {
         }
       `}</style>
 
-      {/* 🌟 PREMIUM 3D FLOATING CARD (Red Theme) */}
       <div className="w-full max-w-[400px] bg-white rounded-[2.5rem] p-8 md:p-10 relative z-50 animate-3d-popup shadow-[0_20px_50px_rgba(220,38,38,0.1),0_4px_12px_rgba(0,0,0,0.05),inset_0_1px_0_rgba(255,255,255,1)] border border-red-50">
         
-        {/* Close Button */}
         <Link
           href="/"
           className="absolute top-6 right-6 w-8 h-8 bg-neutral-50 rounded-full flex items-center justify-center text-neutral-400 hover:text-red-600 hover:bg-red-50 transition-all active:scale-90"
@@ -276,7 +252,6 @@ export default function LoginPage() {
           <FiX className="text-sm" />
         </Link>
 
-        {/* Header */}
         <div className="text-center space-y-1 mb-8 pt-2">
           <h1 className="text-3xl font-black tracking-widest text-neutral-900 uppercase font-sans">
             LOGIN
@@ -286,7 +261,6 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* Dynamic Dual Role Segment Tabs */}
         <div className="grid grid-cols-2 gap-2.5 mb-6">
           <button
             type="button"
@@ -325,7 +299,6 @@ export default function LoginPage() {
           </button>
         </div>
 
-        {/* Status Message Notification */}
         {message.text && (
           <div
             className={`mb-4 p-3 rounded-2xl text-[11px] font-bold text-center transition-all ${
@@ -338,10 +311,7 @@ export default function LoginPage() {
           </div>
         )}
 
-        {/* 📋 LOGIN FORM */}
         <form onSubmit={handleLogin} className="space-y-4">
-          
-          {/* WhatsApp Mobile Number Input */}
           <div className="relative flex items-center">
             <input
               type="tel"
@@ -354,7 +324,6 @@ export default function LoginPage() {
             <FiPhone className="absolute right-5 text-neutral-400 text-sm pointer-events-none" />
           </div>
 
-          {/* Password Input With Eye Toggle */}
           <div className="space-y-2">
             <div className="relative flex items-center">
               <input
@@ -365,21 +334,15 @@ export default function LoginPage() {
                 placeholder="Password"
                 className="w-full bg-[#F9FAFB] border border-neutral-200/60 rounded-full py-4 pl-6 pr-12 text-xs font-bold text-black placeholder-neutral-400 focus:outline-none focus:bg-white focus:border-red-600 transition-all shadow-inner"
               />
-              
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-5 text-neutral-400 hover:text-black transition-colors focus:outline-none"
               >
-                {showPassword ? (
-                  <FiEyeOff className="text-sm" />
-                ) : (
-                  <FiEye className="text-sm" />
-                )}
+                {showPassword ? <FiEyeOff className="text-sm" /> : <FiEye className="text-sm" />}
               </button>
             </div>
 
-            {/* Forgot Password Link */}
             <div className="text-right pr-2">
               <button
                 type="button"
@@ -396,7 +359,6 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* 💥 RED LOGIN BUTTON */}
           <button
             type="submit"
             disabled={loading}
@@ -407,7 +369,6 @@ export default function LoginPage() {
           </button>
         </form>
 
-        {/* Footer Navigation Link */}
         <div className="text-center pt-6 mt-6 border-t border-neutral-100">
           <Link
             href="/register"
@@ -418,13 +379,9 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* ========================================================= */}
-      {/* 🔑 FORGOT PASSWORD 3-STEP POPUP MODAL */}
-      {/* ========================================================= */}
       {isForgotOpen && (
         <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="w-full max-w-[380px] bg-white rounded-[2rem] p-6 md:p-8 relative animate-3d-popup shadow-2xl border border-neutral-100">
-            
             <button
               onClick={() => setIsForgotOpen(false)}
               className="absolute top-5 right-5 w-8 h-8 bg-neutral-100 rounded-full flex items-center justify-center text-neutral-500 hover:text-red-600 transition-all"
@@ -444,16 +401,13 @@ export default function LoginPage() {
             {forgotMsg.text && (
               <div
                 className={`mb-4 p-2.5 rounded-xl text-[11px] font-bold text-center ${
-                  forgotMsg.type === "success"
-                    ? "bg-emerald-50 text-emerald-600"
-                    : "bg-rose-50 text-rose-600"
+                  forgotMsg.type === "success" ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"
                 }`}
               >
                 {forgotMsg.text}
               </div>
             )}
 
-            {/* STEP 1: ENTER PHONE */}
             {forgotStep === 1 && (
               <form onSubmit={handleSendForgotOtp} className="space-y-4">
                 <div className="relative flex items-center">
@@ -467,7 +421,6 @@ export default function LoginPage() {
                   />
                   <FiPhone className="absolute right-4 text-neutral-400 text-sm pointer-events-none" />
                 </div>
-
                 <button
                   type="submit"
                   disabled={forgotLoading}
@@ -479,7 +432,6 @@ export default function LoginPage() {
               </form>
             )}
 
-            {/* STEP 2: VERIFY OTP */}
             {forgotStep === 2 && (
               <form onSubmit={handleVerifyForgotOtp} className="space-y-4">
                 <div className="relative flex items-center">
@@ -494,7 +446,6 @@ export default function LoginPage() {
                   />
                   <FiKey className="absolute right-4 text-neutral-400 text-sm pointer-events-none" />
                 </div>
-
                 <button
                   type="submit"
                   disabled={forgotLoading}
@@ -506,7 +457,6 @@ export default function LoginPage() {
               </form>
             )}
 
-            {/* STEP 3: NEW PASSWORD */}
             {forgotStep === 3 && (
               <form onSubmit={handleResetPassword} className="space-y-3">
                 <div className="relative flex items-center">
@@ -523,11 +473,7 @@ export default function LoginPage() {
                     onClick={() => setShowNewPassword(!showNewPassword)}
                     className="absolute right-4 text-neutral-400 hover:text-black"
                   >
-                    {showNewPassword ? (
-                      <FiEyeOff className="text-sm" />
-                    ) : (
-                      <FiEye className="text-sm" />
-                    )}
+                    {showNewPassword ? <FiEyeOff className="text-sm" /> : <FiEye className="text-sm" />}
                   </button>
                 </div>
 
@@ -548,9 +494,7 @@ export default function LoginPage() {
                   disabled={forgotLoading}
                   className="w-full text-white font-black text-xs uppercase py-4 rounded-full transition-all flex items-center justify-center gap-2 hover:brightness-110 disabled:opacity-50 mt-2 bg-red-600 shadow-[0_4px_14px_rgba(220,38,38,0.4)]"
                 >
-                  <span>
-                    {forgotLoading ? "RESETTING..." : "SAVE NEW PASSWORD"}
-                  </span>
+                  <span>{forgotLoading ? "RESETTING..." : "SAVE NEW PASSWORD"}</span>
                   <FiCheckCircle className="text-sm" />
                 </button>
               </form>
@@ -559,9 +503,22 @@ export default function LoginPage() {
         </div>
       )}
 
-      {/* Decorative Blur Highlights */}
       <div className="absolute top-[-10%] right-[-10%] w-96 h-96 bg-red-500/10 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-[-10%] left-[-10%] w-96 h-96 bg-rose-900/[0.03] rounded-full blur-3xl pointer-events-none" />
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#FFF5F5] flex items-center justify-center">
+        <p className="text-xs font-black tracking-widest text-red-600 uppercase animate-pulse">
+          LOADING LOGIN...
+        </p>
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
   );
 }
