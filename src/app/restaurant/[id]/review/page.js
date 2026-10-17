@@ -11,7 +11,7 @@ export default function CustomerReviewPage({ params }) {
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  // Fetch restaurant details (public route se exact Google review URL aur name lene ke liye)
+  // Fetch restaurant details and generate fresh AI review on page load
   useEffect(() => {
     async function loadRestaurant() {
       try {
@@ -24,14 +24,17 @@ export default function CustomerReviewPage({ params }) {
         console.error(e);
       }
     }
-    if (id) loadRestaurant();
-    fetchAIReview();
+    if (id) {
+      loadRestaurant();
+      fetchAIReview();
+    }
   }, [id]);
 
   const fetchAIReview = async () => {
     setLoading(true);
+    setCopied(false); // Reset copy state on new generation
     try {
-      const res = await fetch("/api/generate-review", {
+      const res = await fetch("/api/ai/review", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -78,15 +81,16 @@ export default function CustomerReviewPage({ params }) {
     document.body.removeChild(textArea);
   };
 
+  // 🛑 AB YEH PEHLE TEXT COPY KAREGA, USKE BAAD USER KO OPTION DEGA YA 1.2 SEC BAAD GOOGLE LINK KHULEGA
   const handlePostReview = () => {
     handleCopy();
     
-    // 🛑 Restaurant dwara dala gaya exact Google Review link (ya fallback)
+    // Restaurant dwara dala gaya exact Google Review link (ya fallback)
     const targetUrl = restaurant?.socialLinks?.googleReviewUrl || restaurant?.googleReviewUrl || "https://google.com";
     
     setTimeout(() => {
-      window.location.href = targetUrl;
-    }, 900);
+      window.open(targetUrl, "_blank"); // New tab me kholega taaki user ka page safe rahe
+    }, 1000);
   };
 
   return (
@@ -123,7 +127,7 @@ export default function CustomerReviewPage({ params }) {
           )}
         </div>
 
-        {/* Regenerate Button */}
+        {/* Regenerate Button - Har baar bilkul naya review layega */}
         <button
           onClick={fetchAIReview}
           disabled={loading}
@@ -143,7 +147,7 @@ export default function CustomerReviewPage({ params }) {
         >
           {copied ? (
             <>
-              <FaCheck className="text-sm stroke-[3]" /> Copied! Opening Restaurant Google Link...
+              <FaCheck className="text-sm stroke-[3]" /> Copied! Opening Google Link...
             </>
           ) : (
             <>
