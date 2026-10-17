@@ -7,7 +7,7 @@ import jwt from "jsonwebtoken";
 
 export async function POST(req) {
   try {
-    const { name, phone, password } = await req.json(); // otp ki yahan zaroorat nahi hai kyunki Step 2 me verify ho chuka hai
+    const { name, phone, password } = await req.json();
 
     if (!name || !phone || !password) {
       return NextResponse.json(
@@ -26,7 +26,7 @@ export async function POST(req) {
     await connectToDatabase();
     const cleanPhone = phone.replace(/[^0-9]/g, "").slice(-10);
 
-    // 1. Cross-Role Duplicate Check (Phone number check in both User and Restaurant)
+    // Cross-Role Duplicate Check
     const existingUser = await User.findOne({ phone: cleanPhone });
     const existingRestaurant = await Restaurant.findOne({ phone: cleanPhone });
 
@@ -40,19 +40,18 @@ export async function POST(req) {
       );
     }
 
-    // 2. Password Hashing
+    // Password Hashing
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // 3. Create Customer User
+    // Create Customer User (Bina Email ke)
     const newUser = await User.create({
       name: name.trim(),
-      email: `${cleanPhone}@customer.com`,
       phone: cleanPhone,
       password: hashedPassword,
       role: "customer",
     });
 
-    // 4. Auth Token Generate
+    // Auth Token Generate
     const token = jwt.sign(
       { id: newUser._id, phone: newUser.phone, role: "customer" },
       process.env.JWT_SECRET || "adyverse_secret_key_customer_node",

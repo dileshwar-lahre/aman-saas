@@ -19,27 +19,22 @@ import { LuChefHat } from "react-icons/lu";
 export default function RegisterPage() {
   const router = useRouter();
 
-  // Multi-step Navigation: 1 = Details, 2 = WhatsApp OTP, 3 = Password Setup
   const [step, setStep] = useState(1);
   const [role, setRole] = useState("owner");
 
-  // Form Fields
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  // Role-based Fields
   const [name, setName] = useState("");
   const [restaurantName, setRestaurantName] = useState("");
   const [ownerName, setOwnerName] = useState("");
   const [location, setLocation] = useState("");
 
-  // UI States
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
 
-  // 1. STEP 1: Send OTP to WhatsApp Phone Number
   const handleSendOtp = async (e) => {
     e.preventDefault();
 
@@ -77,7 +72,6 @@ export default function RegisterPage() {
     }
   };
 
-  // 2. STEP 2: Verify WhatsApp OTP
   const handleVerifyOtp = async (e) => {
     e.preventDefault();
 
@@ -116,7 +110,6 @@ export default function RegisterPage() {
     }
   };
 
-  // 3. STEP 3: Create Password & Register -> Redirect to Login
   const handleFinalRegister = async (e) => {
     e.preventDefault();
 
@@ -202,10 +195,8 @@ export default function RegisterPage() {
         }
       `}</style>
 
-      {/* Main Registration Card Container */}
       <div className="w-full max-w-[420px] bg-white rounded-[2.5rem] p-8 md:p-10 relative z-50 animate-3d-popup shadow-[0_20px_50px_rgba(220,38,38,0.1),0_4px_12px_rgba(0,0,0,0.05),inset_0_1px_0_rgba(255,255,255,1)] border border-red-50">
         
-        {/* Floating Close Button */}
         <Link
           href="/"
           className="absolute top-6 right-6 w-8 h-8 bg-neutral-50 rounded-full flex items-center justify-center text-neutral-400 hover:text-red-600 hover:bg-red-50 transition-all active:scale-90"
@@ -213,7 +204,6 @@ export default function RegisterPage() {
           <FiX className="text-sm" />
         </Link>
 
-        {/* Header */}
         <div className="text-center space-y-1 mb-6 pt-2">
           <h1 className="text-3xl font-black tracking-widest text-neutral-900 uppercase font-sans">
             {step === 1 && "REGISTER"}
@@ -225,7 +215,6 @@ export default function RegisterPage() {
           </p>
         </div>
 
-        {/* Status Alert Banner */}
         {message.text && (
           <div
             className={`mb-4 p-3 rounded-2xl text-[11px] font-bold text-center transition-all ${
@@ -238,10 +227,8 @@ export default function RegisterPage() {
           </div>
         )}
 
-        {/* STEP 1: DETAILS & PHONE FORM */}
         {step === 1 && (
           <div className="animate-3d-popup">
-            {/* Dynamic Role Switch Tabs */}
             <div className="grid grid-cols-2 gap-2.5 mb-6">
               <button
                 type="button"
@@ -335,7 +322,6 @@ export default function RegisterPage() {
                 </>
               )}
 
-              {/* WhatsApp Mobile Number Field */}
               <div className="relative flex items-center">
                 <input
                   type="tel"
@@ -360,16 +346,12 @@ export default function RegisterPage() {
           </div>
         )}
 
-        {/* STEP 2: WHATSAPP OTP POPUP SCREEN */}
         {step === 2 && (
           <div className="animate-3d-popup space-y-4">
             <div className="text-center bg-red-50/50 p-4 rounded-2xl border border-red-100">
               <FiShield className="mx-auto text-xl text-red-600 mb-1" />
               <p className="text-xs font-bold text-neutral-700">
                 OTP Sent to WhatsApp: <span className="text-black">{phone}</span>
-              </p>
-              <p className="text-[10px] text-neutral-400">
-                WhatsApp par bheja gaya 4-digit code yahan daalein.
               </p>
             </div>
 
@@ -382,26 +364,9 @@ export default function RegisterPage() {
                   value={otp}
                   onChange={(e) => setOtp(e.target.value)}
                   placeholder="Enter 4-Digit OTP"
-                  className="w-full bg-[#F9FAFB] border border-red-600 rounded-full py-4 pl-6 pr-12 text-sm font-black text-black tracking-[8px] placeholder-normal placeholder:tracking-normal placeholder-neutral-400 focus:outline-none focus:bg-white transition-all shadow-inner text-center"
+                  className="w-full bg-[#F9FAFB] border border-red-600 rounded-full py-4 pl-6 pr-12 text-sm font-black text-black tracking-[8px] text-center focus:outline-none focus:bg-white transition-all shadow-inner"
                 />
                 <FiKey className="absolute right-5 text-neutral-400 text-sm pointer-events-none" />
-              </div>
-
-              <div className="flex items-center justify-between px-2 text-[10px] font-bold">
-                <button
-                  type="button"
-                  onClick={() => setStep(1)}
-                  className="text-neutral-400 hover:text-black transition-colors"
-                >
-                  ← Edit Details
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSendOtp}
-                  className="text-red-600 hover:underline"
-                >
-                  Resend OTP ?
-                </button>
               </div>
 
               <button
@@ -416,7 +381,6 @@ export default function RegisterPage() {
           </div>
         )}
 
-        {/* STEP 3: CREATE & CONFIRM PASSWORD SCREEN */}
         {step === 3 && (
           <div className="animate-3d-popup space-y-4">
             <div className="text-center bg-emerald-50 p-3 rounded-2xl border border-emerald-100">
@@ -462,7 +426,6 @@ export default function RegisterPage() {
           </div>
         )}
 
-        {/* Footer Navigation Link */}
         <div className="text-center pt-6 mt-6 border-t border-neutral-100">
           <Link
             href="/login"
@@ -472,10 +435,6 @@ export default function RegisterPage() {
           </Link>
         </div>
       </div>
-
-      {/* Decorative Highlights */}
-      <div className="absolute top-[-10%] right-[-10%] w-96 h-96 bg-red-500/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-[-10%] left-[-10%] w-96 h-96 bg-rose-900/[0.03] rounded-full blur-3xl pointer-events-none" />
     </div>
   );
 }

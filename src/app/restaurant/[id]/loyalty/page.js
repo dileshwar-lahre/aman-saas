@@ -2,8 +2,10 @@
 import React, { useState, useEffect, use } from "react";
 import { FiCheck, FiGift, FiClock, FiAlertCircle } from "react-icons/fi";
 import { LuSparkles } from "react-icons/lu";
+import { useRouter } from "next/navigation";
 
 export default function CustomerLoyaltyPage({ params }) {
+  const router = useRouter();
   const resolvedParams = use(params);
   const restaurantId = resolvedParams.id;
 
@@ -30,10 +32,6 @@ export default function CustomerLoyaltyPage({ params }) {
       const data = await res.json();
       if (data.success && data.record) {
         setRecord(data.record);
-        // Agar pichla status approved tha, toh naye din/visit ke liye scratch state reset rakho taaki naya card khul sake
-        if (data.record.approvalStatus === "approved") {
-          setIsScratched(false);
-        }
       }
     } catch (err) {
       console.error(err);
@@ -48,11 +46,7 @@ export default function CustomerLoyaltyPage({ params }) {
       const res = await fetch("/api/loyalty/request", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          customerId,
-          customerName: "Table Guest",
-          restaurantId,
-        }),
+        body: JSON.stringify({ restaurantId }),
       });
 
       const data = await res.json();
@@ -80,6 +74,18 @@ export default function CustomerLoyaltyPage({ params }) {
   const currentStamp = record?.currentStamp || 1;
   const status = record?.approvalStatus || "none";
 
+  // ⏱️ Check if 12 hours cooldown is active after approval
+  let isCooldownActive = false;
+  let cooldownMsg = "";
+  if (status === "approved" && record?.lastClaimDate) {
+    const hoursPassed = (Date.now() - new Date(record.lastClaimDate).getTime()) / (1000 * 60 * 60);
+    if (hoursPassed < 12) {
+      isCooldownActive = true;
+      const remaining = Math.ceil(12 - hoursPassed);
+      cooldownMsg = `⏳ Next stamp unlocks in ~${remaining} hours.`;
+    }
+  }
+
   return (
     <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-4 font-sans">
       <div className="max-w-md w-full bg-slate-900 rounded-[2.5rem] p-6 md:p-8 border border-slate-800 shadow-2xl text-center space-y-6">
@@ -90,13 +96,13 @@ export default function CustomerLoyaltyPage({ params }) {
 
         <div>
           <h1 className="text-2xl font-black text-white">Stamp #{currentStamp} Of 6</h1>
-          <p className="text-slate-400 text-xs mt-1">1 Month Validity Cycle • Table Scan Required</p>
+          <p className="text-slate-400 text-xs mt-1">12-Hour Cooldown & 1-Month Validity Cycle</p>
         </div>
 
         {/* 6 STAMPS PROGRESS GRID */}
         <div className="grid grid-cols-6 gap-2">
           {[1, 2, 3, 4, 5, 6].map((num) => {
-            const isDone = status === "approved" ? num <= currentStamp : num < currentStamp;
+            const isDone = status === "approved" && num < currentStamp;
             const isCurrent = num === currentStamp && status !== "approved";
             return (
               <div
@@ -142,14 +148,18 @@ export default function CustomerLoyaltyPage({ params }) {
           )}
         </div>
 
-        {/* CLAIM BUTTON / STATUS STATES */}
-        {status === "pending" ? (
+        {/* STATUS STATES & COOLDOWN MESSAGE */}
+        {isCooldownActive ? (
+          <div className="bg-amber-500/10 border border-amber-500/30 text-amber-400 p-4 rounded-2xl text-xs font-bold flex items-center justify-center gap-2">
+            <FiClock className="text-base" /> {cooldownMsg}
+          </div>
+        ) : status === "pending" ? (
           <div className="bg-amber-500/10 border border-amber-500/30 text-amber-400 p-4 rounded-2xl flex items-center justify-center gap-2 text-xs font-bold animate-pulse">
             <FiClock className="animate-spin text-base" /> Owner Approval Pending...
           </div>
-        ) : status === "rejected" ? (
-          <div className="bg-red-500/10 border border-red-500/30 text-red-400 p-4 rounded-2xl text-xs font-bold flex items-center justify-center gap-2">
-            <FiAlertCircle className="text-lg" /> Request Rejected By Restaurant.
+        ) : status === "approved" && currentStamp === 6 ? (
+          <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 p-4 rounded-2xl text-xs font-bold text-center">
+            🎉 Congratulations! You have completed all 6 stamps and unlocked the final reward!
           </div>
         ) : (
           <button
@@ -162,6 +172,15 @@ export default function CustomerLoyaltyPage({ params }) {
             }`}
           >
             {requesting ? "Sending Request..." : "Claim Offer Now"}
+          </button>
+        )}
+
+        {status === "approved" && !isCooldownActive && currentStamp < 6 && (
+          <button
+            onClick={() => router.push("/dashboard/profile")}
+            className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-black uppercase tracking-wider transition-all"
+          >
+            Go To Scanned Restaurants Hub 🚀
           </button>
         )}
 

@@ -1,22 +1,23 @@
 "use client";
-import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
+import React, { useState, useEffect, use } from "react";
 import { FaStar, FaCopy, FaExternalLinkAlt, FaMagic, FaInstagram, FaFacebook, FaCheck } from "react-icons/fa";
 
-export default function CustomerReviewPage() {
-  const { id } = useParams();
+export default function CustomerReviewPage({ params }) {
+  const resolvedParams = use(params);
+  const id = resolvedParams.id;
+
   const [restaurant, setRestaurant] = useState(null);
   const [review, setReview] = useState("Generating personalized 5-star AI review...");
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  // Fetch restaurant details
+  // Fetch restaurant details (public route se exact Google review URL aur name lene ke liye)
   useEffect(() => {
     async function loadRestaurant() {
       try {
-        const res = await fetch(`/api/restaurant/${id}`);
+        const res = await fetch(`/api/restaurant/public?restaurantId=${id}`);
         const data = await res.json();
-        if (data.success) {
+        if (data.success && data.restaurant) {
           setRestaurant(data.restaurant);
         }
       } catch (e) {
@@ -30,24 +31,62 @@ export default function CustomerReviewPage() {
   const fetchAIReview = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/generate-review", { method: "POST" });
+      const res = await fetch("/api/generate-review", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          restaurantName: restaurant?.restaurantName || restaurant?.name
+        })
+      });
       const data = await res.json();
-      setReview(data.review);
+      if (data.success && data.review) {
+        setReview(data.review);
+      }
     } catch (err) {
-      setReview("Amazing food, superb ambiance, and very friendly staff! 10/10 recommended!");
+      setReview("Amazing food, superb ambiance, and very friendly staff! 10/10 recommended! ⭐⭐⭐⭐⭐");
     } finally {
       setLoading(false);
     }
   };
 
-  const handlePostReview = () => {
-    navigator.clipboard.writeText(review);
-    setCopied(true);
+  // 🛡️ Mobile & HTTP Safe Clipboard Copy Fallback
+  const handleCopy = () => {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(review).then(() => {
+        setCopied(true);
+      }).catch(() => {
+        fallbackCopy(review);
+      });
+    } else {
+      fallbackCopy(review);
+    }
+  };
 
-    const targetUrl = restaurant?.socialLinks?.googleReviewUrl || "https://maps.google.com";
+  const fallbackCopy = (text) => {
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.position = "fixed";
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    try {
+      document.execCommand('copy');
+      setCopied(true);
+    } catch (err) {
+      alert("Copy failed. Please select text manually.");
+    }
+    document.body.removeChild(textArea);
+  };
+
+  const handlePostReview = () => {
+    handleCopy();
+    
+    // 🛑 Restaurant dwara dala gaya exact Google Review link (ya fallback)
+    const targetUrl = restaurant?.socialLinks?.googleReviewUrl || restaurant?.googleReviewUrl || "https://google.com";
+    
     setTimeout(() => {
       window.location.href = targetUrl;
-    }, 800);
+    }, 900);
   };
 
   return (
@@ -61,7 +100,7 @@ export default function CustomerReviewPage() {
 
         <div className="space-y-1">
           <h1 className="text-2xl font-black text-neutral-900">
-            {restaurant?.name || restaurant?.restaurantName || "Restaurant Partner"}
+            {restaurant?.restaurantName || restaurant?.name || "Restaurant Partner"}
           </h1>
           <p className="text-xs text-red-600 font-bold">Share your 5-Star Experience ⭐</p>
         </div>
@@ -77,7 +116,7 @@ export default function CustomerReviewPage() {
         <div className="bg-[#F9FAFB] p-5 rounded-2xl border border-neutral-200/80 text-neutral-800 text-xs font-bold leading-relaxed min-h-[100px] flex items-center justify-center relative shadow-inner">
           {loading ? (
             <span className="text-neutral-400 animate-pulse uppercase tracking-wider text-[10px] font-black">
-              Generating fresh AI Review...
+              Generating fresh unique AI Review...
             </span>
           ) : (
             `"${review}"`
@@ -90,7 +129,7 @@ export default function CustomerReviewPage() {
           disabled={loading}
           className="flex items-center justify-center gap-2 text-xs font-black uppercase tracking-wider text-red-600 hover:text-red-700 mx-auto transition-all active:scale-95 bg-red-50 px-4 py-2 rounded-xl border border-red-100"
         >
-          <FaMagic className="text-sm" /> Regenerate AI Review
+          <FaMagic className="text-sm" /> Regenerate Fresh AI Review
         </button>
 
         {/* Main CTA Button */}
@@ -104,7 +143,7 @@ export default function CustomerReviewPage() {
         >
           {copied ? (
             <>
-              <FaCheck className="text-sm stroke-[3]" /> Copied! Opening Google Review...
+              <FaCheck className="text-sm stroke-[3]" /> Copied! Opening Restaurant Google Link...
             </>
           ) : (
             <>

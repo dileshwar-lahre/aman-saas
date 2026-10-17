@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   FiArrowRight,
   FiX,
@@ -13,12 +13,13 @@ import {
   FiEyeOff,
   FiKey,
   FiCheckCircle,
-  FiShield,
 } from "react-icons/fi";
 import { LuChefHat } from "react-icons/lu";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectUrl = searchParams.get("redirect");
 
   // Role Control ('owner' ya 'customer')
   const [role, setRole] = useState("owner");
@@ -35,7 +36,7 @@ export default function LoginPage() {
 
   // Forgot Password Modal States
   const [isForgotOpen, setIsForgotOpen] = useState(false);
-  const [forgotStep, setForgotStep] = useState(1); // 1 = Send OTP, 2 = Verify OTP, 3 = Reset Password
+  const [forgotStep, setForgotStep] = useState(1);
   const [forgotPhone, setForgotPhone] = useState("");
   const [forgotOtp, setForgotOtp] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -52,15 +53,15 @@ export default function LoginPage() {
       .then((res) => res.json())
       .then((data) => {
         if (data.success) {
-          // Role ke hisaab se auto-redirect
-          const targetPath = data.user?.role === "restaurant" ? "/profile" : "/dashboard/profile";
+          // Agar redirect URL pehle se hai toh wahan bhej do, nahi toh role ke hisaab se
+          const targetPath = redirectUrl || (data.user?.role === "restaurant" ? "/profile" : "/dashboard/profile");
           router.push(targetPath);
         } else {
           setPageChecking(false);
         }
       })
       .catch(() => setPageChecking(false));
-  }, [router]);
+  }, [router, redirectUrl]);
 
   // ------------------------------------------------------------------
   // 🔐 2. LOGIN HANDLER (Mobile & Password)
@@ -93,8 +94,9 @@ export default function LoginPage() {
       if (data.success) {
         setMessage({ type: "success", text: "🎉 Login Successful! Redirecting..." });
         setTimeout(() => {
-          // ✅ FIX: Backend se aaye huye redirectPath par redirect karega
-          router.push(data.redirectPath || (role === "owner" ? "/profile" : "/dashboard/profile"));
+          // ✅ Agar user kisi scanned link (jaise loyalty/menu) se redirect hoke aaya tha, wahi wapas bhejo!
+          const destination = redirectUrl || data.redirectPath || (role === "owner" ? "/profile" : "/dashboard/profile");
+          router.push(destination);
         }, 1000);
       } else {
         setMessage({ type: "error", text: data.error || "Login Failed!" });
