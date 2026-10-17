@@ -117,7 +117,8 @@ export default function RestaurantOwnerDashboard() {
     );
   }
 
-  const googleReviewLink = restaurant?.socialLinks?.googleReviewUrl || restaurant?.googleReviewUrl || hostUrl;
+  // ✅ FIX: Review QR ab seedha hamare AI review portal par bhega, direct Google par nahi!
+  const reviewPortalUrl = restaurant?._id ? `${hostUrl}/restaurant/${restaurant._id}/review` : hostUrl;
   const hasSocialLinks = restaurant?.socialLinks?.instagram || restaurant?.socialLinks?.facebook;
 
   return (
@@ -151,7 +152,6 @@ export default function RestaurantOwnerDashboard() {
         <div className="fixed inset-0 z-[999] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-sm rounded-[2.5rem] p-6 shadow-2xl border border-red-100 relative animate-3d-popup space-y-4">
             
-            {/* Header with Close Button */}
             <div className="flex justify-between items-center pb-3 border-b border-neutral-100">
               <h3 className="text-sm font-black uppercase tracking-wider text-neutral-900">
                 Restaurant Management
@@ -164,7 +164,6 @@ export default function RestaurantOwnerDashboard() {
               </button>
             </div>
 
-            {/* Menu Options List */}
             <div className="space-y-2.5 pt-2">
               <Link
                 href="/profile/menu"
@@ -335,13 +334,13 @@ export default function RestaurantOwnerDashboard() {
               </button>
             </div>
 
-            {/* 3. Google Review QR */}
+            {/* 3. Google Review Portal QR */}
             <div className="bg-amber-50/50 p-6 rounded-3xl border border-amber-100 text-center flex flex-col items-center">
-              <span className="text-[10px] font-black uppercase bg-amber-500 text-white px-3 py-1 rounded-full mb-4 shadow-md shadow-amber-500/20">3. Review QR</span>
+              <span className="text-[10px] font-black uppercase bg-amber-500 text-white px-3 py-1 rounded-full mb-4 shadow-md shadow-amber-500/20">3. Review Portal QR</span>
               <div className="bg-white p-3 rounded-2xl shadow-sm border border-amber-100">
-                <QRCodeSVG id="review-qr-svg" value={googleReviewLink} size={130} />
+                <QRCodeSVG id="review-qr-svg" value={reviewPortalUrl} size={130} />
               </div>
-              <p className="text-xs font-black text-neutral-800 mt-4">Google Review QR</p>
+              <p className="text-xs font-black text-neutral-800 mt-4">AI Review Portal QR</p>
               <button
                 onClick={() => downloadQRCode("review-qr-svg", `${restaurant?.restaurantName || "restaurant"}-google-review-qr`)}
                 className="mt-4 w-full bg-amber-500 text-white py-2.5 px-4 rounded-xl text-[11px] font-black uppercase flex items-center justify-center gap-2 hover:bg-amber-600 transition-all shadow-md shadow-amber-500/20 active:scale-95"
@@ -350,7 +349,7 @@ export default function RestaurantOwnerDashboard() {
               </button>
               {!restaurant?.socialLinks?.googleReviewUrl && (
                 <Link href="/update-social" className="text-[10px] text-red-600 font-bold underline mt-2 hover:text-red-700">
-                  Add Google Review Link
+                  Add Google Review Link in Settings
                 </Link>
               )}
             </div>

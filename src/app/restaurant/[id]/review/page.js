@@ -11,7 +11,6 @@ export default function CustomerReviewPage({ params }) {
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  // Fetch restaurant details and generate fresh AI review on page load
   useEffect(() => {
     async function loadRestaurant() {
       try {
@@ -21,29 +20,37 @@ export default function CustomerReviewPage({ params }) {
           setRestaurant(data.restaurant);
         }
       } catch (e) {
-        console.error(e);
+        console.error("Restaurant fetch error:", e);
       }
     }
     if (id) {
       loadRestaurant();
-      fetchAIReview();
     }
   }, [id]);
 
+  // Jab restaurant load ho jaye ya button dabayein, tab naya AI review aaye
+  useEffect(() => {
+    if (restaurant) {
+      fetchAIReview();
+    }
+  }, [restaurant]);
+
   const fetchAIReview = async () => {
     setLoading(true);
-    setCopied(false); // Reset copy state on new generation
+    setCopied(false);
     try {
       const res = await fetch("/api/ai/review", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          restaurantName: restaurant?.restaurantName || restaurant?.name
+          restaurantName: restaurant?.restaurantName || restaurant?.name || "This Restaurant"
         })
       });
       const data = await res.json();
       if (data.success && data.review) {
         setReview(data.review);
+      } else {
+        setReview("Amazing food, superb ambiance, and very friendly staff! 10/10 recommended! ⭐⭐⭐⭐⭐");
       }
     } catch (err) {
       setReview("Amazing food, superb ambiance, and very friendly staff! 10/10 recommended! ⭐⭐⭐⭐⭐");
@@ -52,7 +59,6 @@ export default function CustomerReviewPage({ params }) {
     }
   };
 
-  // 🛡️ Mobile & HTTP Safe Clipboard Copy Fallback
   const handleCopy = () => {
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(review).then(() => {
@@ -81,15 +87,12 @@ export default function CustomerReviewPage({ params }) {
     document.body.removeChild(textArea);
   };
 
-  // 🛑 AB YEH PEHLE TEXT COPY KAREGA, USKE BAAD USER KO OPTION DEGA YA 1.2 SEC BAAD GOOGLE LINK KHULEGA
   const handlePostReview = () => {
     handleCopy();
-    
-    // Restaurant dwara dala gaya exact Google Review link (ya fallback)
     const targetUrl = restaurant?.socialLinks?.googleReviewUrl || restaurant?.googleReviewUrl || "https://google.com";
     
     setTimeout(() => {
-      window.open(targetUrl, "_blank"); // New tab me kholega taaki user ka page safe rahe
+      window.open(targetUrl, "_blank");
     }, 1000);
   };
 
@@ -97,7 +100,6 @@ export default function CustomerReviewPage({ params }) {
     <div className="min-h-screen bg-[#FFF5F5] text-slate-900 flex flex-col items-center justify-center p-4 font-sans antialiased">
       <div className="max-w-md w-full bg-white rounded-[2.5rem] p-8 shadow-[0_20px_50px_rgba(220,38,38,0.08)] border border-red-50 text-center space-y-6">
         
-        {/* Badge */}
         <span className="bg-amber-100 text-amber-800 text-[10px] font-black uppercase tracking-widest px-4 py-1.5 rounded-full inline-flex items-center gap-1.5 shadow-sm">
           <FaStar className="text-amber-500" /> Google Review Portal
         </span>
@@ -109,14 +111,12 @@ export default function CustomerReviewPage({ params }) {
           <p className="text-xs text-red-600 font-bold">Share your 5-Star Experience ⭐</p>
         </div>
 
-        {/* Dynamic 5-Stars */}
         <div className="flex justify-center gap-2 py-1">
           {[...Array(5)].map((_, i) => (
             <FaStar key={i} className="text-amber-400 text-2xl hover:scale-125 transition-transform cursor-pointer drop-shadow-sm" />
           ))}
         </div>
 
-        {/* AI Review Text Box */}
         <div className="bg-[#F9FAFB] p-5 rounded-2xl border border-neutral-200/80 text-neutral-800 text-xs font-bold leading-relaxed min-h-[100px] flex items-center justify-center relative shadow-inner">
           {loading ? (
             <span className="text-neutral-400 animate-pulse uppercase tracking-wider text-[10px] font-black">
@@ -127,7 +127,6 @@ export default function CustomerReviewPage({ params }) {
           )}
         </div>
 
-        {/* Regenerate Button - Har baar bilkul naya review layega */}
         <button
           onClick={fetchAIReview}
           disabled={loading}
@@ -136,7 +135,6 @@ export default function CustomerReviewPage({ params }) {
           <FaMagic className="text-sm" /> Regenerate Fresh AI Review
         </button>
 
-        {/* Main CTA Button */}
         <button
           onClick={handlePostReview}
           className={`w-full py-4 px-6 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-xl active:scale-95 ${
@@ -156,7 +154,6 @@ export default function CustomerReviewPage({ params }) {
           )}
         </button>
 
-        {/* Social Follow Links */}
         {(restaurant?.socialLinks?.instagram || restaurant?.socialLinks?.facebook) && (
           <div className="pt-4 border-t border-neutral-100 flex justify-center items-center gap-4">
             <span className="text-[11px] font-bold text-neutral-400 uppercase tracking-wider">Follow Us:</span>
