@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
-import { FiCamera, FiMapPin, FiChevronRight, FiGift, FiBookOpen, FiX, FiInstagram, FiFacebook, FiGlobe } from "react-icons/fi";
+import { FiCamera, FiMapPin, FiChevronRight, FiGift, FiBookOpen, FiX, FiInstagram, FiFacebook, FiGlobe, FiAward } from "react-icons/fi";
 import { Html5Qrcode } from "html5-qrcode";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -41,7 +41,7 @@ export default function UserDashboard() {
     }
   };
 
-  // 🔴 Live Camera Scanner Start karo
+  // 🔴 Live Camera QR Scanner Start karo (Direct Camera View)
   const startScanner = async () => {
     setScannerOpen(true);
     setTimeout(async () => {
@@ -71,7 +71,7 @@ export default function UserDashboard() {
         );
       } catch (err) {
         console.error("Camera start error:", err);
-        alert("Camera start nahi ho paya. Kripya camera permission check karein!");
+        alert("Camera start nahi ho paya. Kripya browser ki camera permission check karein!");
         setScannerOpen(false);
       }
     }, 200);
@@ -100,7 +100,7 @@ export default function UserDashboard() {
   return (
     <div className="min-h-screen bg-slate-950 text-white pb-16 font-sans relative">
       
-      {/* 🔴 LIVE SCANNER MODAL */}
+      {/* 🔴 LIVE QR SCANNER MODAL */}
       {scannerOpen && (
         <div className="fixed inset-0 z-[999] bg-black/95 backdrop-blur-md flex flex-col items-center justify-center p-4">
           <div className="bg-slate-900 w-full max-w-sm rounded-[2.5rem] p-6 border border-slate-800 shadow-2xl space-y-4 text-center relative">
@@ -136,6 +136,7 @@ export default function UserDashboard() {
             <p className="text-xs text-red-100">Aapke saare scanned restaurants ek jagah</p>
           </div>
 
+          {/* SCAN QR BUTTON - Opens Live Camera Scanner */}
           <button
             onClick={startScanner}
             className="bg-white text-red-600 p-3.5 rounded-2xl shadow-lg font-black text-xs uppercase flex items-center gap-2 hover:bg-slate-100 transition-all active:scale-95"
@@ -172,6 +173,9 @@ export default function UserDashboard() {
               const resto = item.restaurantId;
               if (!resto) return null;
 
+              const currentStamps = item.currentStamp || 1;
+              const claimedCount = item.approvalStatus === "approved" ? currentStamps - 1 : currentStamps > 1 ? currentStamps - 1 : 0;
+
               return (
                 <div
                   key={item._id}
@@ -179,7 +183,7 @@ export default function UserDashboard() {
                 >
                   <div className="flex justify-between items-start">
                     <div>
-                      <Link href={`/restaurant/${resto._id}/loyalty`} className="group">
+                      <Link href={`/restaurant/${resto._id}`} className="group">
                         <h3 className="text-base font-black text-white group-hover:text-red-400 transition-colors">
                           {resto.restaurantName || resto.name}
                         </h3>
@@ -187,14 +191,21 @@ export default function UserDashboard() {
                       <p className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
                         <FiMapPin className="text-red-500" /> {resto.location || "Dining Hub"}
                       </p>
+
+                      {/* 🌟 Real Claimed Stamps Count Badge */}
+                      <div className="mt-2">
+                        <span className="inline-flex items-center gap-1 text-[10px] font-black bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/20">
+                          <FiAward /> Stamps Claimed: {claimedCount} / 5
+                        </span>
+                      </div>
                     </div>
 
                     <span className="bg-red-600/20 text-red-400 text-xs font-black px-3 py-1 rounded-full border border-red-500/30 flex items-center gap-1">
-                      <FiGift /> Stamp #{item.currentStamp || 1}/6
+                      <FiGift /> Stamp #{currentStamps}/6
                     </span>
                   </div>
 
-                  {/* 🌟 Restaurant Social Links & Actions Bar */}
+                  {/* 🌟 Restaurant Social Links & Passbook Link Bar */}
                   <div className="flex items-center justify-between pt-3 border-t border-slate-800">
                     <div className="flex gap-2">
                       {resto.socialLinks?.instagram && (
@@ -215,7 +226,7 @@ export default function UserDashboard() {
                     </div>
 
                     <Link
-                      href={`/restaurant/${resto._id}/loyalty`}
+                      href={`/restaurant/${resto._id}`}
                       className="inline-flex items-center gap-1 text-xs text-red-400 font-bold hover:underline"
                     >
                       <span>Open Passbook</span>
