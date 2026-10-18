@@ -41,7 +41,7 @@ export default function UserDashboard() {
     }
   };
 
-  // 🔴 Live Camera QR Scanner Start karo (Direct Camera View)
+  // 🔴 Live Camera QR Scanner Start karo
   const startScanner = async () => {
     setScannerOpen(true);
     setTimeout(async () => {
@@ -136,7 +136,6 @@ export default function UserDashboard() {
             <p className="text-xs text-red-100">Aapke saare scanned restaurants ek jagah</p>
           </div>
 
-          {/* SCAN QR BUTTON - Opens Live Camera Scanner */}
           <button
             onClick={startScanner}
             className="bg-white text-red-600 p-3.5 rounded-2xl shadow-lg font-black text-xs uppercase flex items-center gap-2 hover:bg-slate-100 transition-all active:scale-95"
@@ -192,7 +191,7 @@ export default function UserDashboard() {
                         <FiMapPin className="text-red-500" /> {resto.location || "Dining Hub"}
                       </p>
 
-                      {/* 🌟 Real Claimed Stamps Count Badge */}
+                      {/* Real Claimed Stamps Badge */}
                       <div className="mt-2">
                         <span className="inline-flex items-center gap-1 text-[10px] font-black bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/20">
                           <FiAward /> Stamps Claimed: {claimedCount} / 5
