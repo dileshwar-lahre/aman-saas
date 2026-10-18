@@ -26,7 +26,6 @@ export default function UserInstagramStyleRestaurantPage({ params }) {
 
   const checkUserAuthAndLoad = async () => {
     try {
-      // 🌟 Step 1: Real Logged-in User check karo
       let cid = "";
       const resAuth = await fetch("/api/auth/me");
       if (resAuth.ok) {
@@ -38,7 +37,6 @@ export default function UserInstagramStyleRestaurantPage({ params }) {
         }
       }
 
-      // Agar login nahi hai, tabhi guest fallback ID use karo
       if (!cid) {
         let guestId = localStorage.getItem("ady_customer_id");
         if (!guestId) {
@@ -49,7 +47,6 @@ export default function UserInstagramStyleRestaurantPage({ params }) {
         setCustomerId(cid);
       }
 
-      // Step 2: Fetch Restaurant Info & Menu safely
       const resMenu = await fetch(`/api/restaurant/menu?restaurantId=${restaurantId}`);
       const dataMenu = await resMenu.json();
       if (dataMenu.success) {
@@ -57,7 +54,6 @@ export default function UserInstagramStyleRestaurantPage({ params }) {
         setMenuItems(dataMenu.menu || []);
       }
 
-      // Step 3: Fetch Real Loyalty Record for this user & restaurant
       const resLoyalty = await fetch(`/api/loyalty/request?customerId=${cid}&restaurantId=${restaurantId}`);
       const dataLoyalty = await resLoyalty.json();
       if (dataLoyalty.success && dataLoyalty.record) {
@@ -146,14 +142,12 @@ export default function UserInstagramStyleRestaurantPage({ params }) {
                 <FiMapPin className="text-red-500" /> {restaurant?.location || "Delicious Hub"}
               </p>
               
-              {/* 🌟 Real Dynamic Claims / Stamps Count Badge */}
               <div className="pt-1">
                 <span className="inline-flex items-center gap-1 text-[11px] font-black bg-emerald-500/10 text-emerald-400 px-2.5 py-0.5 rounded-md border border-emerald-500/20">
                   <FiAward /> Total Stamps Claimed: {totalClaimsCount} / 5
                 </span>
               </div>
 
-              {/* Social Links */}
               <div className="flex gap-2 pt-1">
                 {restaurant?.socialLinks?.instagram && (
                   <a href={restaurant.socialLinks.instagram} target="_blank" rel="noreferrer" className="bg-slate-800 p-2 rounded-xl text-pink-400 hover:bg-slate-700">
@@ -206,29 +200,38 @@ export default function UserInstagramStyleRestaurantPage({ params }) {
               <h2 className="text-xl font-black text-white">
                 {currentStamp === 6 && status === "approved" ? "🎉 6th Reward Unlocked!" : `Stamp #${currentStamp} Of 6 Active`}
               </h2>
-              <p className="text-slate-400 text-xs">Owner approval ke baad agla stamp unlock hoga.</p>
+              <p className="text-slate-400 text-xs">Owner approval ke baad hi agla stamp tick hoga.</p>
             </div>
 
-            {/* 6 Stamps Progress Grid */}
+            {/* 🌟 STRICT SEQUENTIAL STAMPS GRID FIX */}
             <div className="grid grid-cols-6 gap-2">
               {[1, 2, 3, 4, 5, 6].map((num) => {
-                const isCompletedBefore = status === "approved" && num < currentStamp;
-                const isJustApproved = status === "approved" && num === currentStamp;
-                const isDone = isCompletedBefore || isJustApproved;
+                // Sirf tabhi green tick hoga jab status approved ho aur num < currentStamp ho
+                const isDone = status === "approved" && num < currentStamp;
+                // Current active stamp tabhi red highlight hoga jab status approved na ho (jaise pending ya none)
                 const isCurrent = num === currentStamp && status !== "approved";
+                // Agar status approved hai aur currentStamp aage badh gaya hai, toh current num green ho jayega
+
+                const successfullyApprovedBefore = status === "approved" && num <= currentStamp - 1;
 
                 return (
                   <div
                     key={num}
                     className={`h-12 rounded-xl flex items-center justify-center font-black text-xs transition-all ${
-                      isDone
+                      successfullyApprovedBefore
                         ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/30"
                         : isCurrent
                         ? "bg-red-600 text-white ring-2 ring-red-400 shadow-lg shadow-red-600/40"
                         : "bg-slate-800 text-slate-600 border border-slate-700"
                     }`}
                   >
-                    {isDone ? <FiCheck className="text-base stroke-[3]" /> : num === 6 ? <FiGift /> : `#${num}`}
+                    {successfullyApprovedBefore ? (
+                      <FiCheck className="text-base stroke-[3]" />
+                    ) : num === 6 ? (
+                      <FiGift />
+                    ) : (
+                      `#${num}`
+                    )}
                   </div>
                 );
               })}

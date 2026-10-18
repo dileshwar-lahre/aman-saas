@@ -21,7 +21,6 @@ export default function CustomerLoyaltyPage({ params }) {
 
   const initUserAndFetchStatus = async () => {
     try {
-      // 🌟 Step 1: Pehle check karo ki koi real user logged-in hai ya nahi
       const resAuth = await fetch("/api/auth/me");
       if (resAuth.ok) {
         const authData = await resAuth.json();
@@ -36,7 +35,6 @@ export default function CustomerLoyaltyPage({ params }) {
       console.error("Auth check error:", e);
     }
 
-    // Step 2: Agar login nahi hai, tabhi guest localStorage ID use karein
     let existingId = localStorage.getItem("ady_customer_id");
     if (!existingId) {
       existingId = "cust_" + Math.random().toString(36).substring(2, 9);
@@ -94,6 +92,10 @@ export default function CustomerLoyaltyPage({ params }) {
   const currentStamp = record?.currentStamp || 1;
   const status = record?.approvalStatus || "none";
 
+  // 🌟 STRICT FIX: Sirf tabhi green tick hoga jab status "approved" ho aur wo specific stamp number current stamp se chhota ho ya barabar ho (jab approved ho chuka ho)
+  // Maan lo currentStamp 1 hai aur status approved hai, toh stamp #1 green hoga aur stamp #2 red/active hoga.
+  const approvedStampLevel = status === "approved" ? currentStamp : currentStamp - 1;
+
   // Check 12 hours cooldown after approval
   let isCooldownActive = false;
   let cooldownMsg = "";
@@ -124,23 +126,27 @@ export default function CustomerLoyaltyPage({ params }) {
         {/* 6 STAMPS PROGRESS GRID */}
         <div className="grid grid-cols-6 gap-2">
           {[1, 2, 3, 4, 5, 6].map((num) => {
-            const isCompletedBefore = status === "approved" && num < currentStamp;
-            const isJustApproved = status === "approved" && num === currentStamp;
-            const isDone = isCompletedBefore || isJustApproved;
+            // Ekdam accurate condition: Sirf wahi stamp green tick hoga jo successfully owner ne approve kar diya hai
+            const isDone = num <= approvedStampLevel && (status === "approved" ? num < currentStamp || (currentStamp === 6 && num === 6) : false);
+            
+            // Lekin agar turant approve ho gaya hai aur currentStamp agle par move ho gaya hai:
+            const isSuccessfullyPassed = status === "approved" ? num < currentStamp : num < currentStamp;
+            
+            // Current active box jiske liye abhi claim karna hai ya pending hai
             const isCurrent = num === currentStamp && status !== "approved";
 
             return (
               <div
                 key={num}
                 className={`h-12 rounded-xl flex items-center justify-center font-black text-xs transition-all ${
-                  isDone
+                  isSuccessfullyPassed
                     ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/30"
                     : isCurrent
                     ? "bg-red-600 text-white ring-2 ring-red-400 shadow-lg shadow-red-600/40"
                     : "bg-slate-800 text-slate-600 border border-slate-700"
                 }`}
               >
-                {isDone ? (
+                {isSuccessfullyPassed ? (
                   <FiCheck className="text-base stroke-[3]" />
                 ) : num === 6 ? (
                   <FiGift />
