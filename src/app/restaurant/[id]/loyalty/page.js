@@ -16,6 +16,27 @@ export default function CustomerLoyaltyPage({ params }) {
   const [requesting, setRequesting] = useState(false);
 
   useEffect(() => {
+    initUserAndFetchStatus();
+  }, [restaurantId]);
+
+  const initUserAndFetchStatus = async () => {
+    try {
+      // 🌟 Step 1: Pehle check karo ki koi real user logged-in hai ya nahi
+      const resAuth = await fetch("/api/auth/me");
+      if (resAuth.ok) {
+        const authData = await resAuth.json();
+        if (authData.success && authData.user) {
+          const realUserId = authData.user.id || authData.user._id;
+          setCustomerId(realUserId);
+          fetchStatus(realUserId);
+          return;
+        }
+      }
+    } catch (e) {
+      console.error("Auth check error:", e);
+    }
+
+    // Step 2: Agar login nahi hai, tabhi guest localStorage ID use karein
     let existingId = localStorage.getItem("ady_customer_id");
     if (!existingId) {
       existingId = "cust_" + Math.random().toString(36).substring(2, 9);
@@ -23,7 +44,7 @@ export default function CustomerLoyaltyPage({ params }) {
     }
     setCustomerId(existingId);
     fetchStatus(existingId);
-  }, [restaurantId]);
+  };
 
   const fetchStatus = async (cid) => {
     try {
@@ -33,7 +54,7 @@ export default function CustomerLoyaltyPage({ params }) {
         setRecord(data.record);
       }
     } catch (err) {
-      console.error(err);
+      console.error("Fetch status error:", err);
     } finally {
       setLoading(false);
     }
@@ -45,7 +66,7 @@ export default function CustomerLoyaltyPage({ params }) {
       const res = await fetch("/api/loyalty/request", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ restaurantId }),
+        body: JSON.stringify({ customerId, restaurantId }),
       });
 
       const data = await res.json();

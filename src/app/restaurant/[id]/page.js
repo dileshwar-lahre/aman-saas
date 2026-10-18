@@ -13,6 +13,7 @@ export default function UserInstagramStyleRestaurantPage({ params }) {
   const [customerId, setCustomerId] = useState("");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [restaurant, setRestaurant] = useState(null);
+  const [menuItems, setMenuItems] = useState([]);
   const [record, setRecord] = useState(null);
   const [isScratched, setIsScratched] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -20,56 +21,56 @@ export default function UserInstagramStyleRestaurantPage({ params }) {
   const [activeTab, setActiveTab] = useState("loyalty");
 
   useEffect(() => {
-    checkUserAuth();
+    checkUserAuthAndLoad();
   }, [restaurantId]);
 
-  const checkUserAuth = async () => {
+  const checkUserAuthAndLoad = async () => {
     try {
-      const res = await fetch("/api/auth/me");
-      if (res.ok) {
-        const data = await res.json();
-        if (data.user) {
+      // 🌟 Step 1: Real Logged-in User check karo
+      let cid = "";
+      const resAuth = await fetch("/api/auth/me");
+      if (resAuth.ok) {
+        const authData = await resAuth.json();
+        if (authData.success && authData.user) {
           setIsLoggedIn(true);
-          const cid = data.user.id || data.user._id;
+          cid = authData.user.id || authData.user._id;
           setCustomerId(cid);
-          loadData(cid);
-          return;
         }
       }
-    } catch (e) {
-      console.error(e);
-    }
-    
-    // Unauthenticated Guest Fallback ID
-    let cid = typeof window !== "undefined" ? localStorage.getItem("ady_customer_id") : null;
-    if (!cid) {
-      cid = "cust_" + Math.random().toString(36).substring(2, 9);
-      if (typeof window !== "undefined") localStorage.setItem("ady_customer_id", cid);
-    }
-    setCustomerId(cid);
-    loadData(cid);
-  };
 
-  const loadData = async (cid) => {
-    try {
+      // Agar login nahi hai, tabhi guest fallback ID use karo
+      if (!cid) {
+        let guestId = localStorage.getItem("ady_customer_id");
+        if (!guestId) {
+          guestId = "cust_" + Math.random().toString(36).substring(2, 9);
+          localStorage.setItem("ady_customer_id", guestId);
+        }
+        cid = guestId;
+        setCustomerId(cid);
+      }
+
+      // Step 2: Fetch Restaurant Info & Menu safely
       const resMenu = await fetch(`/api/restaurant/menu?restaurantId=${restaurantId}`);
       const dataMenu = await resMenu.json();
-      if (dataMenu.success) setRestaurant(dataMenu);
+      if (dataMenu.success) {
+        setRestaurant(dataMenu.restaurant || dataMenu);
+        setMenuItems(dataMenu.menu || []);
+      }
 
+      // Step 3: Fetch Real Loyalty Record for this user & restaurant
       const resLoyalty = await fetch(`/api/loyalty/request?customerId=${cid}&restaurantId=${restaurantId}`);
       const dataLoyalty = await resLoyalty.json();
       if (dataLoyalty.success && dataLoyalty.record) {
         setRecord(dataLoyalty.record);
       }
     } catch (err) {
-      console.error(err);
+      console.error("Error loading data:", err);
     } finally {
       setLoading(false);
     }
   };
 
   const handleClaim = async () => {
-    // 🔒 STRICT SECURITY: Login Guard
     if (!isLoggedIn) {
       alert("🔒 Stamp Claim karne ke liye pehle Customer Login karna zaroori hai!");
       router.push("/login");
@@ -83,7 +84,6 @@ export default function UserInstagramStyleRestaurantPage({ params }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           customerId,
-          customerName: "Logged-In Customer",
           restaurantId,
         }),
       });
@@ -105,14 +105,13 @@ export default function UserInstagramStyleRestaurantPage({ params }) {
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center font-bold">
-        Loading Instagram Hub...
+        Loading Restaurant Hub...
       </div>
     );
   }
 
   const currentStamp = record?.currentStamp || 1;
   const status = record?.approvalStatus || "none";
-  // Dynamic total claims calculated based on current active stamp or history
   const totalClaimsCount = status === "approved" ? currentStamp - 1 : currentStamp > 1 ? currentStamp - 1 : 0;
 
   return (
@@ -137,17 +136,17 @@ export default function UserInstagramStyleRestaurantPage({ params }) {
           <div className="flex items-center gap-4 pt-2">
             <div className="w-20 h-20 bg-gradient-to-tr from-red-600 via-rose-500 to-amber-500 rounded-full p-1 shadow-lg">
               <div className="w-full h-full bg-slate-900 rounded-full flex items-center justify-center text-2xl font-black text-white uppercase border-2 border-slate-900">
-                {(restaurant?.restaurantName || "A")[0]}
+                {(restaurant?.restaurantName || restaurant?.name || "A")[0]}
               </div>
             </div>
 
             <div className="space-y-1">
-              <h1 className="text-xl font-black text-white">{restaurant?.restaurantName || "Restaurant Spot"}</h1>
+              <h1 className="text-xl font-black text-white">{restaurant?.restaurantName || restaurant?.name || "Restaurant Spot"}</h1>
               <p className="text-xs text-slate-400 flex items-center gap-1">
                 <FiMapPin className="text-red-500" /> {restaurant?.location || "Delicious Hub"}
               </p>
               
-              {/* 🌟 Dynamic Claims / Stamps Count Badge */}
+              {/* 🌟 Real Dynamic Claims / Stamps Count Badge */}
               <div className="pt-1">
                 <span className="inline-flex items-center gap-1 text-[11px] font-black bg-emerald-500/10 text-emerald-400 px-2.5 py-0.5 rounded-md border border-emerald-500/20">
                   <FiAward /> Total Stamps Claimed: {totalClaimsCount} / 5
@@ -156,13 +155,17 @@ export default function UserInstagramStyleRestaurantPage({ params }) {
 
               {/* Social Links */}
               <div className="flex gap-2 pt-1">
-                <a href="https://instagram.com" target="_blank" rel="noreferrer" className="bg-slate-800 p-2 rounded-xl text-pink-400 hover:bg-slate-700">
-                  <FiInstagram />
-                </a>
-                <a href="https://facebook.com" target="_blank" rel="noreferrer" className="bg-slate-800 p-2 rounded-xl text-blue-400 hover:bg-slate-700">
-                  <FiFacebook />
-                </a>
-                <a href={restaurant?.googleReviewUrl || "https://google.com"} target="_blank" rel="noreferrer" className="bg-slate-800 p-2 rounded-xl text-amber-400 hover:bg-slate-700">
+                {restaurant?.socialLinks?.instagram && (
+                  <a href={restaurant.socialLinks.instagram} target="_blank" rel="noreferrer" className="bg-slate-800 p-2 rounded-xl text-pink-400 hover:bg-slate-700">
+                    <FiInstagram />
+                  </a>
+                )}
+                {restaurant?.socialLinks?.facebook && (
+                  <a href={restaurant.socialLinks.facebook} target="_blank" rel="noreferrer" className="bg-slate-800 p-2 rounded-xl text-blue-400 hover:bg-slate-700">
+                    <FiFacebook />
+                  </a>
+                )}
+                <a href={restaurant?.socialLinks?.googleReviewUrl || restaurant?.googleReviewUrl || "https://google.com"} target="_blank" rel="noreferrer" className="bg-slate-800 p-2 rounded-xl text-amber-400 hover:bg-slate-700">
                   <FiGlobe />
                 </a>
               </div>
@@ -200,15 +203,20 @@ export default function UserInstagramStyleRestaurantPage({ params }) {
               <span className="text-[10px] font-black uppercase text-red-400 tracking-widest">
                 Sequential Stamp Unlock
               </span>
-              <h2 className="text-xl font-black text-white">Stamp #{currentStamp} Of 6 Active</h2>
+              <h2 className="text-xl font-black text-white">
+                {currentStamp === 6 && status === "approved" ? "🎉 6th Reward Unlocked!" : `Stamp #${currentStamp} Of 6 Active`}
+              </h2>
               <p className="text-slate-400 text-xs">Owner approval ke baad agla stamp unlock hoga.</p>
             </div>
 
             {/* 6 Stamps Progress Grid */}
             <div className="grid grid-cols-6 gap-2">
               {[1, 2, 3, 4, 5, 6].map((num) => {
-                const isDone = num < currentStamp;
-                const isCurrent = num === currentStamp;
+                const isCompletedBefore = status === "approved" && num < currentStamp;
+                const isJustApproved = status === "approved" && num === currentStamp;
+                const isDone = isCompletedBefore || isJustApproved;
+                const isCurrent = num === currentStamp && status !== "approved";
+
                 return (
                   <div
                     key={num}
@@ -259,17 +267,18 @@ export default function UserInstagramStyleRestaurantPage({ params }) {
               <div className="bg-amber-500/10 border border-amber-500/30 text-amber-400 p-4 rounded-2xl flex items-center justify-center gap-2 text-xs font-bold animate-pulse">
                 <FiClock className="animate-spin text-base" /> Request Pending with Restaurant Owner...
               </div>
-            ) : status === "approved" ? (
-              <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 p-4 rounded-2xl text-xs font-bold flex items-center justify-center gap-2">
-                <FiCheck className="text-lg stroke-[3]" /> Stamp Approved! Next Stamp Unlocked.
+            ) : status === "approved" && currentStamp >= 6 ? (
+              <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 p-4 rounded-2xl text-xs font-bold text-center space-y-1">
+                <p className="font-black text-sm">🎉 Congratulations!</p>
+                <p>You have completed all stamps and unlocked your 6th reward!</p>
               </div>
             ) : (
               <button
                 onClick={handleClaim}
-                disabled={!isScratched || requesting}
+                disabled={!isScratched || requesting || status === "pending"}
                 className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all ${
                   isScratched
-                    ? "bg-red-600 hover:bg-red-500 text-white shadow-xl shadow-red-600/30"
+                    ? "bg-red-600 hover:bg-red-500 text-white shadow-xl shadow-red-600/30 active:scale-95"
                     : "bg-slate-800 text-slate-500 cursor-not-allowed"
                 }`}
               >
@@ -283,12 +292,12 @@ export default function UserInstagramStyleRestaurantPage({ params }) {
         {activeTab === "menu" && (
           <div className="space-y-3">
             <h2 className="text-xs font-black text-slate-400 uppercase tracking-wider">Digital Menu Items</h2>
-            {(!restaurant?.menu || restaurant.menu.length === 0) ? (
+            {(!menuItems || menuItems.length === 0) ? (
               <div className="bg-slate-900 p-8 rounded-2xl text-center text-slate-500 text-xs font-bold border border-slate-800">
                 Menu list is currently empty.
               </div>
             ) : (
-              restaurant.menu.map((item) => (
+              menuItems.map((item) => (
                 <div key={item._id} className="bg-slate-900 p-4 rounded-2xl border border-slate-800 flex justify-between items-center">
                   <div>
                     <span className="text-[9px] font-black uppercase text-red-400 bg-red-500/10 px-2 py-0.5 rounded-md">
