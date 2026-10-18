@@ -14,11 +14,15 @@ export default function CustomerVisitsPage() {
       .then((res) => res.json())
       .then((data) => {
         if (data.success) {
-          setCustomers(data.customers || []);
+          // Fallback handled: data.customers ya data.visits dono me se jo bhi aaye
+          setCustomers(data.customers || data.visits || []);
         }
         setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch((err) => {
+        console.error("Fetch error:", err);
+        setLoading(false);
+      });
   }, []);
 
   if (loading) {
@@ -80,13 +84,10 @@ export default function CustomerVisitsPage() {
                 </thead>
                 <tbody className="divide-y divide-neutral-100 text-xs font-bold text-neutral-700">
                   {customers.map((item) => {
-                    // Fix: Check both customerPhone direct field and populated customerId phone
-                    const phoneNum = item.customerPhone || item.customerId?.phone || "";
-                    const cleanPhone = phoneNum.replace(/\D/g, "");
-                    const customerName = item.customerName || item.customerId?.name || "Valued Customer";
-                    
-                    // Total visits/stamps count
-                    const totalVisits = item.currentStamp || 1;
+                    const phoneNum = item.customerPhone || item.customerId?.phone || item.userId?.phone || "";
+                    const cleanPhone = phoneNum.toString().replace(/\D/g, "");
+                    const customerName = item.customerName || item.customerId?.name || item.userId?.name || "Valued Customer";
+                    const totalVisits = item.currentStamp || item.totalVisits || 1;
 
                     return (
                       <tr key={item._id} className="hover:bg-neutral-50/80 transition-colors">
@@ -103,10 +104,10 @@ export default function CustomerVisitsPage() {
                         </td>
                         <td className="py-4 px-4 text-neutral-400 text-[11px] font-medium">
                           <div className="flex items-center gap-1">
-                            <FiCalendar /> {new Date(item.updatedAt).toLocaleDateString()}
+                            <FiCalendar /> {new Date(item.updatedAt || item.lastVisit || Date.now()).toLocaleDateString()}
                           </div>
                           <span className="text-[10px] text-neutral-300">
-                            {new Date(item.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            {new Date(item.updatedAt || item.lastVisit || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </span>
                         </td>
                         <td className="py-4 px-4 text-right">
@@ -123,7 +124,7 @@ export default function CustomerVisitsPage() {
                             ) : null}
 
                             {/* WhatsApp Message Button */}
-                            {phoneNum ? (
+                            {cleanPhone ? (
                               <a
                                 href={`https://wa.me/${cleanPhone}?text=Hello%20${encodeURIComponent(customerName)},%20thank%20you%20for%20visiting%20our%20restaurant!%20Aapka%20visit%20record%20aur%20stamp%20successfully%20update%20ho%20gaya%20hain.`}
                                 target="_blank"

@@ -80,7 +80,6 @@ export default function RestaurantOwnerDashboard() {
     }
   };
 
-  // 📥 QR Code Download Handler
   const downloadQRCode = (svgId, fileName) => {
     const svgElement = document.getElementById(svgId);
     if (!svgElement) return;
@@ -117,13 +116,11 @@ export default function RestaurantOwnerDashboard() {
     );
   }
 
-  // ✅ FIX: Review QR ab seedha hamare AI review portal par bhega, direct Google par nahi!
   const reviewPortalUrl = restaurant?._id ? `${hostUrl}/restaurant/${restaurant._id}/review` : hostUrl;
   const hasSocialLinks = restaurant?.socialLinks?.instagram || restaurant?.socialLinks?.facebook;
 
   return (
     <div className="min-h-screen bg-[#FFF5F5] text-slate-900 pb-20 font-sans antialiased relative">
-      {/* Red Header */}
       <div className="bg-gradient-to-r from-red-600 to-rose-700 text-white py-12 px-6 shadow-xl relative overflow-hidden">
         <div className="max-w-5xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6 relative z-10">
           <div>
@@ -134,7 +131,6 @@ export default function RestaurantOwnerDashboard() {
             <p className="text-red-100 text-xs font-medium mt-1">{restaurant?.location} • Live Approval & Loyalty Node</p>
           </div>
 
-          {/* 🍔 Quick Actions Button */}
           <div>
             <button
               onClick={() => setMenuOpen(true)}
@@ -147,11 +143,9 @@ export default function RestaurantOwnerDashboard() {
         <div className="absolute top-[-50%] right-[-10%] w-96 h-96 bg-white/10 rounded-full blur-3xl pointer-events-none" />
       </div>
 
-      {/* 📱 Mobile & Desktop Friendly Fullscreen/Popup Menu Modal */}
       {menuOpen && (
         <div className="fixed inset-0 z-[999] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-sm rounded-[2.5rem] p-6 shadow-2xl border border-red-100 relative animate-3d-popup space-y-4">
-            
+          <div className="bg-white w-full max-w-sm rounded-[2.5rem] p-6 shadow-2xl border border-red-100 relative space-y-4">
             <div className="flex justify-between items-center pb-3 border-b border-neutral-100">
               <h3 className="text-sm font-black uppercase tracking-wider text-neutral-900">
                 Restaurant Management
@@ -221,8 +215,6 @@ export default function RestaurantOwnerDashboard() {
       )}
 
       <div className="max-w-5xl mx-auto px-6 mt-8 space-y-8">
-
-        {/* 🌐 CONNECTED SOCIAL LINKS */}
         {hasSocialLinks && (
           <div className="bg-white rounded-[2rem] p-6 shadow-[0_10px_30px_rgba(220,38,38,0.06)] border border-red-50">
             <h2 className="text-xs font-black text-neutral-400 uppercase tracking-widest mb-4">
@@ -256,7 +248,6 @@ export default function RestaurantOwnerDashboard() {
           </div>
         )}
 
-        {/* LIVE APPROVAL NOTIFICATIONS */}
         <div className="bg-white rounded-[2rem] p-6 md:p-8 shadow-[0_10px_30px_rgba(220,38,38,0.06)] border border-red-50">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-sm font-black text-neutral-900 uppercase tracking-wider flex items-center gap-2.5">
@@ -297,14 +288,12 @@ export default function RestaurantOwnerDashboard() {
           )}
         </div>
 
-        {/* QR CODES WITH DOWNLOAD OPTION */}
         <div className="bg-white rounded-[2rem] p-6 md:p-8 shadow-[0_10px_30px_rgba(220,38,38,0.06)] border border-red-50">
           <h2 className="text-sm font-black text-neutral-900 uppercase tracking-wider mb-6 flex items-center gap-2.5">
             <HiQrcode className="text-red-600 text-xl" /> Standee QR Codes & Downloads
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* 1. Menu QR */}
             <div className="bg-[#F9FAFB] p-6 rounded-3xl border border-neutral-200/60 text-center flex flex-col items-center">
               <span className="text-[10px] font-black uppercase bg-neutral-200 text-neutral-700 px-3 py-1 rounded-full mb-4">1. Menu QR</span>
               <div className="bg-white p-3 rounded-2xl shadow-sm border border-neutral-100">
@@ -319,7 +308,6 @@ export default function RestaurantOwnerDashboard() {
               </button>
             </div>
 
-            {/* 2. Loyalty Pass QR */}
             <div className="bg-red-50/50 p-6 rounded-3xl border border-red-100 text-center flex flex-col items-center">
               <span className="text-[10px] font-black uppercase bg-red-600 text-white px-3 py-1 rounded-full mb-4 shadow-md shadow-red-600/20">2. Loyalty Pass QR</span>
               <div className="bg-white p-3 rounded-2xl shadow-sm border border-red-100">
@@ -334,7 +322,6 @@ export default function RestaurantOwnerDashboard() {
               </button>
             </div>
 
-            {/* 3. Google Review Portal QR */}
             <div className="bg-amber-50/50 p-6 rounded-3xl border border-amber-100 text-center flex flex-col items-center">
               <span className="text-[10px] font-black uppercase bg-amber-500 text-white px-3 py-1 rounded-full mb-4 shadow-md shadow-amber-500/20">3. Review Portal QR</span>
               <div className="bg-white p-3 rounded-2xl shadow-sm border border-amber-100">
@@ -355,7 +342,6 @@ export default function RestaurantOwnerDashboard() {
             </div>
           </div>
         </div>
-
       </div>
     </div>
   );

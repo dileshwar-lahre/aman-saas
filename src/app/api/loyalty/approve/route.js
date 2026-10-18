@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/db";
 import Loyalty from "@/models/Loyalty";
 
-// GET: Fetch All Pending Requests for Logged-In Restaurant with Customer Info
 export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url);
@@ -14,7 +13,6 @@ export async function GET(req) {
 
     await connectToDatabase();
     
-    // Pending requests fetch karte waqt customer details populate/include kar rahe hain
     const pendingRequests = await Loyalty.find({ restaurantId, approvalStatus: "pending" })
       .populate("customerId", "phone name")
       .sort({ updatedAt: -1 });
@@ -26,10 +24,9 @@ export async function GET(req) {
   }
 }
 
-// PUT: Approve (Right) or Reject (Cut) with Visitor Tracking & Daily Lock
 export async function PUT(req) {
   try {
-    const { loyaltyId, action } = await req.json(); // action = 'approve' or 'reject'
+    const { loyaltyId, action } = await req.json();
 
     await connectToDatabase();
     const record = await Loyalty.findById(loyaltyId).populate("customerId", "phone name");
@@ -38,26 +35,11 @@ export async function PUT(req) {
       return NextResponse.json({ success: false, error: "Record nahi mila!" }, { status: 404 });
     }
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    // 🛑 Daily Claim Restriction Check
-    if (record.lastClaimDate) {
-      const lastDate = new Date(record.lastClaimDate);
-      lastDate.setHours(0, 0, 0, 0);
-      if (lastDate.getTime() === today.getTime() && action === "approve" && record.approvalStatus === "approved") {
-        return NextResponse.json({ 
-          success: false, 
-          error: "Yeh customer aaj ka stamp already claim kar chuka hai!" 
-        }, { status: 400 });
-      }
-    }
-
     if (action === "approve") {
       record.approvalStatus = "approved";
-      record.lastClaimDate = new Date(); // Aaj ki timestamp save kar di taaki duplicate claim na ho
+      record.lastClaimDate = new Date();
 
-      // If approved, move to next stamp. If 6th reward approved -> reset cycle to Stamp 1
+      // Agar 6th reward complete ho gaya hai aur owner ne approve kiya, toh cycle reset karke wapas 1 par le aao
       if (record.currentStamp >= 6) {
         record.currentStamp = 1;
         record.cycleStartedAt = new Date();

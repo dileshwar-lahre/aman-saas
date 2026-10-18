@@ -16,7 +16,7 @@ export async function POST(req) {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const customerId = decoded.userId || decoded.id;
     const customerPhone = decoded.phone || decoded.mobile || "";
-    const customerName = decoded.name || decoded.fullName || "WhatsApp Guest";
+    const customerName = decoded.name || decoded.fullName || "Customer";
 
     const { restaurantId } = await req.json();
     if (!restaurantId) {
@@ -30,10 +30,10 @@ export async function POST(req) {
 
     let record = await Loyalty.findOne({ customerId, restaurantId });
 
-    // ⏱️ 12-Hours Cooldown Check (Agar pehle se record hai aur approvalStatus approved hai)
+    // ⏱️ 12-Hours Cooldown Check
     if (record && record.approvalStatus === "approved" && record.lastClaimDate) {
       const hoursPassed = (Date.now() - new Date(record.lastClaimDate).getTime()) / (1000 * 60 * 60);
-      if (hoursPassed < 12) {
+      if (hoursPassed < 12 && record.currentStamp <= 6) {
         const remainingHours = Math.ceil(12 - hoursPassed);
         return NextResponse.json(
           { success: false, error: `⏳ Cooldown Active: Please wait ${remainingHours} more hours before claiming your next stamp!` },
@@ -44,7 +44,7 @@ export async function POST(req) {
 
     // 1-Month Expiry Check
     const thirtyDaysInMs = 30 * 24 * 60 * 60 * 1000;
-    if (record && Date.now() - new Date(record.cycleStartedAt).getTime() > thirtyDaysInMs) {
+    if (record && Date.now() - new Date(record.cycleStartedAt || record.createdAt).getTime() > thirtyDaysInMs) {
       record.currentStamp = 1;
       record.cycleStartedAt = new Date();
     }
@@ -56,25 +56,26 @@ export async function POST(req) {
         customerName,
         restaurantId,
         currentStamp: 1,
+        approvalStatus: "pending",
         cycleStartedAt: new Date(),
       });
     } else {
       record.customerPhone = customerPhone || record.customerPhone;
       record.customerName = customerName || record.customerName;
+      record.approvalStatus = "pending";
+      record.lastScannedAt = new Date();
     }
 
     const stampKey = record.currentStamp === 6 ? "reward6th" : `stamp${record.currentStamp}`;
     const offerText = restaurant.loyaltyOffers?.[stampKey] || "Special Discount";
 
-    record.approvalStatus = "pending";
     record.currentOfferText = offerText;
-    record.lastScannedAt = new Date();
 
     await record.save();
 
     return NextResponse.json({
       success: true,
-      message: "Request sent to Owner!",
+      message: "Stamp request sent to Owner!",
       record,
     });
   } catch (error) {
@@ -94,7 +95,7 @@ export async function GET(req) {
     }
 
     await connectToDatabase();
-    const record = await Loyalty.findOne({ customerId, restaurantId });
+    let record = await Loyalty.findOne({ customerId, restaurantId });
     return NextResponse.json({ success: true, record });
   } catch (error) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });

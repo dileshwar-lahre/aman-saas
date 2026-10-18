@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect, use } from "react";
-import { FiCheck, FiGift, FiClock, FiAlertCircle } from "react-icons/fi";
+import { FiCheck, FiGift, FiClock } from "react-icons/fi";
 import { LuSparkles } from "react-icons/lu";
 import { useRouter } from "next/navigation";
 
@@ -22,7 +22,6 @@ export default function CustomerLoyaltyPage({ params }) {
       localStorage.setItem("ady_customer_id", existingId);
     }
     setCustomerId(existingId);
-
     fetchStatus(existingId);
   }, [restaurantId]);
 
@@ -74,12 +73,12 @@ export default function CustomerLoyaltyPage({ params }) {
   const currentStamp = record?.currentStamp || 1;
   const status = record?.approvalStatus || "none";
 
-  // ⏱️ Check if 12 hours cooldown is active after approval
+  // Check 12 hours cooldown after approval
   let isCooldownActive = false;
   let cooldownMsg = "";
   if (status === "approved" && record?.lastClaimDate) {
     const hoursPassed = (Date.now() - new Date(record.lastClaimDate).getTime()) / (1000 * 60 * 60);
-    if (hoursPassed < 12) {
+    if (hoursPassed < 12 && currentStamp < 6) {
       isCooldownActive = true;
       const remaining = Math.ceil(12 - hoursPassed);
       cooldownMsg = `⏳ Next stamp unlocks in ~${remaining} hours.`;
@@ -95,27 +94,32 @@ export default function CustomerLoyaltyPage({ params }) {
         </span>
 
         <div>
-          <h1 className="text-2xl font-black text-white">Stamp #{currentStamp} Of 6</h1>
-          <p className="text-slate-400 text-xs mt-1">12-Hour Cooldown & 1-Month Validity Cycle</p>
+          <h1 className="text-2xl font-black text-white">
+            {currentStamp === 6 && status === "approved" ? "🎉 Reward Unlocked!" : `Stamp #${currentStamp} Of 6`}
+          </h1>
+          <p className="text-slate-400 text-xs mt-1">12-Hour Cooldown & Exclusive Rewards</p>
         </div>
 
         {/* 6 STAMPS PROGRESS GRID */}
         <div className="grid grid-cols-6 gap-2">
           {[1, 2, 3, 4, 5, 6].map((num) => {
-            const isDone = status === "approved" && num < currentStamp;
+            const isCompletedBefore = status === "approved" && num < currentStamp;
+            const isJustApproved = status === "approved" && num === currentStamp;
+            const isDone = isCompletedBefore || isJustApproved;
             const isCurrent = num === currentStamp && status !== "approved";
+
             return (
               <div
                 key={num}
                 className={`h-12 rounded-xl flex items-center justify-center font-black text-xs transition-all ${
-                  num < currentStamp || (num === currentStamp && status === "approved")
-                    ? "bg-emerald-600 text-white"
+                  isDone
+                    ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/30"
                     : isCurrent
                     ? "bg-red-600 text-white ring-2 ring-red-400 shadow-lg shadow-red-600/40"
                     : "bg-slate-800 text-slate-600 border border-slate-700"
                 }`}
               >
-                {num < currentStamp || (num === currentStamp && status === "approved") ? (
+                {isDone ? (
                   <FiCheck className="text-base stroke-[3]" />
                 ) : num === 6 ? (
                   <FiGift />
@@ -127,7 +131,7 @@ export default function CustomerLoyaltyPage({ params }) {
           })}
         </div>
 
-        {/* INTERACTIVE SCRATCH CARD BOX */}
+        {/* SCRATCH CARD BOX */}
         <div className="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-6 text-center relative overflow-hidden">
           {!isScratched ? (
             <button
@@ -148,7 +152,7 @@ export default function CustomerLoyaltyPage({ params }) {
           )}
         </div>
 
-        {/* STATUS STATES & COOLDOWN MESSAGE */}
+        {/* STATUS MESSAGES & BUTTONS */}
         {isCooldownActive ? (
           <div className="bg-amber-500/10 border border-amber-500/30 text-amber-400 p-4 rounded-2xl text-xs font-bold flex items-center justify-center gap-2">
             <FiClock className="text-base" /> {cooldownMsg}
@@ -157,14 +161,15 @@ export default function CustomerLoyaltyPage({ params }) {
           <div className="bg-amber-500/10 border border-amber-500/30 text-amber-400 p-4 rounded-2xl flex items-center justify-center gap-2 text-xs font-bold animate-pulse">
             <FiClock className="animate-spin text-base" /> Owner Approval Pending...
           </div>
-        ) : status === "approved" && currentStamp === 6 ? (
-          <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 p-4 rounded-2xl text-xs font-bold text-center">
-            🎉 Congratulations! You have completed all 6 stamps and unlocked the final reward!
+        ) : status === "approved" && currentStamp >= 6 ? (
+          <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 p-4 rounded-2xl text-xs font-bold text-center space-y-1">
+            <p className="font-black text-sm">🎉 Congratulations!</p>
+            <p>You have completed all stamps and unlocked your 6th reward!</p>
           </div>
         ) : (
           <button
             onClick={handleClaim}
-            disabled={!isScratched || requesting}
+            disabled={!isScratched || requesting || status === "pending"}
             className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all ${
               isScratched
                 ? "bg-red-600 hover:bg-red-500 text-white shadow-xl shadow-red-600/30 active:scale-95"
@@ -175,14 +180,12 @@ export default function CustomerLoyaltyPage({ params }) {
           </button>
         )}
 
-        {status === "approved" && !isCooldownActive && currentStamp < 6 && (
-          <button
-            onClick={() => router.push("/dashboard/profile")}
-            className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-black uppercase tracking-wider transition-all"
-          >
-            Go To Scanned Restaurants Hub 🚀
-          </button>
-        )}
+        <button
+          onClick={() => router.push("/dashboard/profile")}
+          className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-black uppercase tracking-wider transition-all"
+        >
+          Go To Scanned Restaurants Hub 🚀
+        </button>
 
       </div>
     </div>

@@ -1,152 +1,307 @@
 "use client";
 import React, { useState, useEffect, use } from "react";
-import { FaStar, FaCopy, FaExternalLinkAlt, FaMagic, FaInstagram, FaFacebook, FaCheck } from "react-icons/fa";
+import { FiCheck, FiGift, FiClock, FiMapPin, FiGlobe, FiInstagram, FiFacebook, FiBookOpen, FiArrowLeft, FiLock, FiAward } from "react-icons/fi";
+import { HiSparkles } from "react-icons/hi";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 
-export default function CustomerReviewPage({ params }) {
+export default function UserInstagramStyleRestaurantPage({ params }) {
+  const router = useRouter();
   const resolvedParams = use(params);
-  const id = resolvedParams.id;
+  const restaurantId = resolvedParams.id;
 
+  const [customerId, setCustomerId] = useState("");
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [restaurant, setRestaurant] = useState(null);
-  const [review, setReview] = useState("Generating personalized 5-star AI review...");
-  const [loading, setLoading] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [record, setRecord] = useState(null);
+  const [isScratched, setIsScratched] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [requesting, setRequesting] = useState(false);
+  const [activeTab, setActiveTab] = useState("loyalty");
 
   useEffect(() => {
-    async function loadRestaurant() {
-      try {
-        const res = await fetch(`/api/restaurant/public?restaurantId=${id}`);
-        const data = await res.json();
-        if (data.success && data.restaurant) {
-          setRestaurant(data.restaurant);
-        }
-      } catch (e) {
-        console.error(e);
-      }
-    }
-    if (id) {
-      loadRestaurant();
-      fetchAIReview();
-    }
-  }, [id]);
+    checkUserAuth();
+  }, [restaurantId]);
 
-  const fetchAIReview = async () => {
-    setLoading(true);
-    setCopied(false);
+  const checkUserAuth = async () => {
     try {
-      const res = await fetch("/api/ai/review", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          restaurantName: restaurant?.restaurantName || restaurant?.name
-        })
-      });
-      const data = await res.json();
-      if (data.success && data.review) {
-        setReview(data.review);
+      const res = await fetch("/api/auth/me");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.user) {
+          setIsLoggedIn(true);
+          const cid = data.user.id || data.user._id;
+          setCustomerId(cid);
+          loadData(cid);
+          return;
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    
+    // Unauthenticated Guest Fallback ID
+    let cid = typeof window !== "undefined" ? localStorage.getItem("ady_customer_id") : null;
+    if (!cid) {
+      cid = "cust_" + Math.random().toString(36).substring(2, 9);
+      if (typeof window !== "undefined") localStorage.setItem("ady_customer_id", cid);
+    }
+    setCustomerId(cid);
+    loadData(cid);
+  };
+
+  const loadData = async (cid) => {
+    try {
+      const resMenu = await fetch(`/api/restaurant/menu?restaurantId=${restaurantId}`);
+      const dataMenu = await resMenu.json();
+      if (dataMenu.success) setRestaurant(dataMenu);
+
+      const resLoyalty = await fetch(`/api/loyalty/request?customerId=${cid}&restaurantId=${restaurantId}`);
+      const dataLoyalty = await resLoyalty.json();
+      if (dataLoyalty.success && dataLoyalty.record) {
+        setRecord(dataLoyalty.record);
       }
     } catch (err) {
-      setReview("Amazing food, superb ambiance, and very friendly staff! 10/10 recommended! ⭐⭐⭐⭐⭐");
+      console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCopy = () => {
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(review).then(() => {
-        setCopied(true);
-      }).catch(() => {
-        fallbackCopy(review);
-      });
-    } else {
-      fallbackCopy(review);
+  const handleClaim = async () => {
+    // 🔒 STRICT SECURITY: Login Guard
+    if (!isLoggedIn) {
+      alert("🔒 Stamp Claim karne ke liye pehle Customer Login karna zaroori hai!");
+      router.push("/login");
+      return;
     }
-  };
 
-  const fallbackCopy = (text) => {
-    const textArea = document.createElement("textarea");
-    textArea.value = text;
-    textArea.style.position = "fixed";
-    document.body.appendChild(textArea);
-    textArea.focus();
-    textArea.select();
+    setRequesting(true);
     try {
-      document.execCommand('copy');
-      setCopied(true);
+      const res = await fetch("/api/loyalty/request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          customerId,
+          customerName: "Logged-In Customer",
+          restaurantId,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setRecord(data.record);
+        alert("🚀 Claim Request sent to Restaurant Owner! Approval ka wait karein.");
+      } else {
+        alert(data.error || "Request failed");
+      }
     } catch (err) {
-      alert("Copy failed. Please select text manually.");
+      alert("Error sending claim request");
+    } finally {
+      setRequesting(false);
     }
-    document.body.removeChild(textArea);
   };
 
-  const handlePostReview = () => {
-    handleCopy();
-    
-    // Restaurant ka exact saved Google review link
-    const targetUrl = restaurant?.socialLinks?.googleReviewUrl || restaurant?.googleReviewUrl || "https://google.com";
-    
-    setTimeout(() => {
-      window.location.href = targetUrl; // Copy hone ke baad hi Google par jayega
-    }, 1000);
-  };
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center font-bold">
+        Loading Instagram Hub...
+      </div>
+    );
+  }
+
+  const currentStamp = record?.currentStamp || 1;
+  const status = record?.approvalStatus || "none";
+  // Dynamic total claims calculated based on current active stamp or history
+  const totalClaimsCount = status === "approved" ? currentStamp - 1 : currentStamp > 1 ? currentStamp - 1 : 0;
 
   return (
-    <div className="min-h-screen bg-[#FFF5F5] text-slate-900 flex flex-col items-center justify-center p-4 font-sans antialiased">
-      <div className="max-w-md w-full bg-white rounded-[2.5rem] p-8 shadow-[0_20px_50px_rgba(220,38,38,0.08)] border border-red-50 text-center space-y-6">
-        
-        <span className="bg-amber-100 text-amber-800 text-[10px] font-black uppercase tracking-widest px-4 py-1.5 rounded-full inline-flex items-center gap-1.5 shadow-sm">
-          <FaStar className="text-amber-500" /> Google Review Portal
-        </span>
+    <div className="min-h-screen bg-slate-950 text-white pb-20">
+      
+      {/* 📸 INSTAGRAM PROFILE HEADER */}
+      <div className="bg-slate-900 border-b border-slate-800 p-6 rounded-b-3xl shadow-xl">
+        <div className="max-w-md mx-auto space-y-4">
+          <div className="flex justify-between items-center">
+            <Link
+              href="/dashboard/profile"
+              className="text-xs font-black uppercase bg-slate-800 text-slate-300 px-3 py-1.5 rounded-xl hover:bg-slate-700 flex items-center gap-1"
+            >
+              <FiArrowLeft /> Back
+            </Link>
 
-        <div className="space-y-1">
-          <h1 className="text-2xl font-black text-neutral-900">
-            {restaurant?.restaurantName || restaurant?.name || "Restaurant Partner"}
-          </h1>
-          <p className="text-xs text-red-600 font-bold">Share your 5-Star Experience ⭐</p>
-        </div>
-
-        <div className="flex justify-center gap-2 py-1">
-          {[...Array(5)].map((_, i) => (
-            <FaStar key={i} className="text-amber-400 text-2xl hover:scale-125 transition-transform cursor-pointer drop-shadow-sm" />
-          ))}
-        </div>
-
-        <div className="bg-[#F9FAFB] p-5 rounded-2xl border border-neutral-200/80 text-neutral-800 text-xs font-bold leading-relaxed min-h-[100px] flex items-center justify-center relative shadow-inner">
-          {loading ? (
-            <span className="text-neutral-400 animate-pulse uppercase tracking-wider text-[10px] font-black">
-              Generating fresh unique AI Review...
+            <span className="text-[10px] font-black uppercase tracking-widest bg-red-600/20 text-red-400 px-3 py-1 rounded-full border border-red-500/30">
+              Verified Partner
             </span>
-          ) : (
-            `"${review}"`
-          )}
+          </div>
+
+          <div className="flex items-center gap-4 pt-2">
+            <div className="w-20 h-20 bg-gradient-to-tr from-red-600 via-rose-500 to-amber-500 rounded-full p-1 shadow-lg">
+              <div className="w-full h-full bg-slate-900 rounded-full flex items-center justify-center text-2xl font-black text-white uppercase border-2 border-slate-900">
+                {(restaurant?.restaurantName || "A")[0]}
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <h1 className="text-xl font-black text-white">{restaurant?.restaurantName || "Restaurant Spot"}</h1>
+              <p className="text-xs text-slate-400 flex items-center gap-1">
+                <FiMapPin className="text-red-500" /> {restaurant?.location || "Delicious Hub"}
+              </p>
+              
+              {/* 🌟 Dynamic Claims / Stamps Count Badge */}
+              <div className="pt-1">
+                <span className="inline-flex items-center gap-1 text-[11px] font-black bg-emerald-500/10 text-emerald-400 px-2.5 py-0.5 rounded-md border border-emerald-500/20">
+                  <FiAward /> Total Stamps Claimed: {totalClaimsCount} / 5
+                </span>
+              </div>
+
+              {/* Social Links */}
+              <div className="flex gap-2 pt-1">
+                <a href="https://instagram.com" target="_blank" rel="noreferrer" className="bg-slate-800 p-2 rounded-xl text-pink-400 hover:bg-slate-700">
+                  <FiInstagram />
+                </a>
+                <a href="https://facebook.com" target="_blank" rel="noreferrer" className="bg-slate-800 p-2 rounded-xl text-blue-400 hover:bg-slate-700">
+                  <FiFacebook />
+                </a>
+                <a href={restaurant?.googleReviewUrl || "https://google.com"} target="_blank" rel="noreferrer" className="bg-slate-800 p-2 rounded-xl text-amber-400 hover:bg-slate-700">
+                  <FiGlobe />
+                </a>
+              </div>
+            </div>
+          </div>
+
+          {/* Action Tabs */}
+          <div className="grid grid-cols-2 gap-2 bg-slate-950 p-1 rounded-2xl border border-slate-800 mt-4">
+            <button
+              onClick={() => setActiveTab("loyalty")}
+              className={`py-2.5 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition-all ${
+                activeTab === "loyalty" ? "bg-red-600 text-white shadow-md shadow-red-600/30" : "text-slate-400 hover:text-white"
+              }`}
+            >
+              <FiGift /> 5-Stamp Pass
+            </button>
+            <button
+              onClick={() => setActiveTab("menu")}
+              className={`py-2.5 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition-all ${
+                activeTab === "menu" ? "bg-red-600 text-white shadow-md shadow-red-600/30" : "text-slate-400 hover:text-white"
+              }`}
+            >
+              <FiBookOpen /> Digital Menu
+            </button>
+          </div>
         </div>
+      </div>
 
-        <button
-          onClick={fetchAIReview}
-          disabled={loading}
-          className="flex items-center justify-center gap-2 text-xs font-black uppercase tracking-wider text-red-600 hover:text-red-700 mx-auto transition-all active:scale-95 bg-red-50 px-4 py-2 rounded-xl border border-red-100"
-        >
-          <FaMagic className="text-sm" /> Regenerate Fresh AI Review
-        </button>
+      <div className="max-w-md mx-auto px-4 mt-6 space-y-6">
 
-        <button
-          onClick={handlePostReview}
-          className={`w-full py-4 px-6 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-xl active:scale-95 ${
-            copied
-              ? "bg-emerald-500 text-white shadow-emerald-500/20"
-              : "bg-red-600 hover:bg-red-700 text-white shadow-red-600/30"
-          }`}
-        >
-          {copied ? (
-            <>
-              <FaCheck className="text-sm stroke-[3]" /> Copied! Opening Google Link...
-            </>
-          ) : (
-            <>
-              <FaCopy /> Copy & Post on Google <FaExternalLinkAlt className="text-xs" />
-            </>
-          )}
-        </button>
+        {/* TAB 1: LOYALTY CARD & SEQUENTIAL STAMP UNLOCK */}
+        {activeTab === "loyalty" && (
+          <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 text-center space-y-6 shadow-xl">
+            <div className="space-y-1">
+              <span className="text-[10px] font-black uppercase text-red-400 tracking-widest">
+                Sequential Stamp Unlock
+              </span>
+              <h2 className="text-xl font-black text-white">Stamp #{currentStamp} Of 6 Active</h2>
+              <p className="text-slate-400 text-xs">Owner approval ke baad agla stamp unlock hoga.</p>
+            </div>
+
+            {/* 6 Stamps Progress Grid */}
+            <div className="grid grid-cols-6 gap-2">
+              {[1, 2, 3, 4, 5, 6].map((num) => {
+                const isDone = num < currentStamp;
+                const isCurrent = num === currentStamp;
+                return (
+                  <div
+                    key={num}
+                    className={`h-12 rounded-xl flex items-center justify-center font-black text-xs transition-all ${
+                      isDone
+                        ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/30"
+                        : isCurrent
+                        ? "bg-red-600 text-white ring-2 ring-red-400 shadow-lg shadow-red-600/40"
+                        : "bg-slate-800 text-slate-600 border border-slate-700"
+                    }`}
+                  >
+                    {isDone ? <FiCheck className="text-base stroke-[3]" /> : num === 6 ? <FiGift /> : `#${num}`}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Scratch Box */}
+            <div className="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-6 text-center relative overflow-hidden">
+              {!isScratched ? (
+                <button
+                  onClick={() => setIsScratched(true)}
+                  className="w-full py-8 bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-500 hover:to-rose-600 rounded-xl text-white font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95"
+                >
+                  <HiSparkles className="text-lg" /> Touch / Scratch To Reveal Offer
+                </button>
+              ) : (
+                <div className="space-y-2">
+                  <span className="text-[10px] font-black uppercase text-red-400 tracking-wider">
+                    {currentStamp === 6 ? "🎉 6th Mega Reward Offer" : `Stamp #${currentStamp} Offer`}
+                  </span>
+                  <p className="text-base font-black text-white">
+                    {record?.currentOfferText || "Special Discount On Today's Visit!"}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Auth Alert Box */}
+            {!isLoggedIn && (
+              <div className="bg-amber-500/10 border border-amber-500/30 text-amber-400 p-3 rounded-2xl text-xs font-bold flex items-center justify-center gap-2">
+                <FiLock /> Claim karne ke liye Customer Login required hai.
+              </div>
+            )}
+
+            {/* Action State */}
+            {status === "pending" ? (
+              <div className="bg-amber-500/10 border border-amber-500/30 text-amber-400 p-4 rounded-2xl flex items-center justify-center gap-2 text-xs font-bold animate-pulse">
+                <FiClock className="animate-spin text-base" /> Request Pending with Restaurant Owner...
+              </div>
+            ) : status === "approved" ? (
+              <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 p-4 rounded-2xl text-xs font-bold flex items-center justify-center gap-2">
+                <FiCheck className="text-lg stroke-[3]" /> Stamp Approved! Next Stamp Unlocked.
+              </div>
+            ) : (
+              <button
+                onClick={handleClaim}
+                disabled={!isScratched || requesting}
+                className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all ${
+                  isScratched
+                    ? "bg-red-600 hover:bg-red-500 text-white shadow-xl shadow-red-600/30"
+                    : "bg-slate-800 text-slate-500 cursor-not-allowed"
+                }`}
+              >
+                {requesting ? "Sending..." : "Claim Today's Stamp Offer"}
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* TAB 2: DIGITAL MENU */}
+        {activeTab === "menu" && (
+          <div className="space-y-3">
+            <h2 className="text-xs font-black text-slate-400 uppercase tracking-wider">Digital Menu Items</h2>
+            {(!restaurant?.menu || restaurant.menu.length === 0) ? (
+              <div className="bg-slate-900 p-8 rounded-2xl text-center text-slate-500 text-xs font-bold border border-slate-800">
+                Menu list is currently empty.
+              </div>
+            ) : (
+              restaurant.menu.map((item) => (
+                <div key={item._id} className="bg-slate-900 p-4 rounded-2xl border border-slate-800 flex justify-between items-center">
+                  <div>
+                    <span className="text-[9px] font-black uppercase text-red-400 bg-red-500/10 px-2 py-0.5 rounded-md">
+                      {item.category}
+                    </span>
+                    <h3 className="font-bold text-sm text-white mt-1">{item.name}</h3>
+                  </div>
+                  <span className="text-base font-black text-white">₹{item.price}</span>
+                </div>
+              ))
+            )}
+          </div>
+        )}
 
       </div>
     </div>

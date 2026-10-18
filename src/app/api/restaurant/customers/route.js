@@ -18,15 +18,47 @@ export async function GET(req) {
     }
 
     await connectToDatabase();
+    const restaurantId = decoded.id || decoded.userId;
 
-    // Is restaurant ke saare customer loyalty records fetch karo aur User details populate karo
-    const customers = await Loyalty.find({ restaurantId: decoded.id || decoded.userId })
-      .populate("customerId", "phone name")
-      .sort({ updatedAt: -1 });
+    // 1. Fetch all loyalty records for this restaurant dynamically
+    const records = await Loyalty.find({ restaurantId }).sort({ updatedAt: -1 });
+
+    // 2. Loop through each record and dynamically fetch real-time customer Name & Phone from User model
+    const customers = await Promise.all(
+      records.map(async (v, index) => {
+        let phoneNum = "";
+        let dynamicName = v.customerName || "";
+
+        if (v.customerId) {
+          try {
+            const userDoc = await User.findById(v.customerId);
+            if (userDoc) {
+              phoneNum = userDoc.phone || userDoc.mobile || userDoc.phoneNumber || "";
+              // Agar loyalty record me name nahi tha ya "Valued Customer" tha, toh User table ka real name uthao
+              if (!dynamicName || dynamicName === "Valued Customer" || dynamicName.startsWith("Customer")) {
+                dynamicName = userDoc.name || dynamicName;
+              }
+            }
+          } catch (err) {
+            console.error("Error fetching user details for loyalty record:", err);
+          }
+        }
+
+        return {
+          _id: v._id,
+          customerName: dynamicName || `Customer #${index + 1}`,
+          customerPhone: phoneNum || "Not Available",
+          currentStamp: v.currentStamp || 0,
+          totalVisits: v.currentStamp || 1,
+          status: v.approvalStatus || v.status || "active",
+          lastVisit: v.lastScannedAt || v.updatedAt || new Date()
+        };
+      })
+    );
 
     return NextResponse.json({ success: true, customers }, { status: 200 });
   } catch (error) {
-    console.error("Customer Visits API Error:", error);
+    console.error("🔥 Customer Visits API Critical Error:", error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
